@@ -1,4 +1,4 @@
 # Summer2026
 Personal resume assistant 
-Hello Juan Jiminez
-Hello Roman Lozano
+Made by Juan Jiminez
+Made by  Roman Lozano
