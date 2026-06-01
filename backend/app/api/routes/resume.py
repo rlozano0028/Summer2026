@@ -13,6 +13,7 @@ from typing import Optional
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.models.resume import ResumeParseResult
+from app.services import profile_storage
 from app.services.resume_profile_parser import parse_resume_text_to_profile
 from app.services.resume_text_extractor import extract_text_from_resume
 from app.utils.file_validation import SUPPORTED_EXTENSIONS, ResumeValidationError
@@ -87,9 +88,12 @@ async def extract_text_endpoint(file: UploadFile = File(...)) -> dict[str, objec
     }
 
 
-@router.post("/resume/parse", response_model=ResumeParseResult, tags=["resume"])
-async def parse_resume_endpoint(file: UploadFile = File(...)) -> ResumeParseResult:
-    """Extract text from an uploaded resume and return a parsed profile."""
+def _extract_and_parse(file: UploadFile) -> ResumeParseResult:
+    """Shared logic: validate, extract text, and parse into a profile.
+
+    The uploaded file is written to a temp path and deleted afterwards; nothing
+    is stored permanently here.
+    """
 
     _reject_unsupported(file)
     temp_path = _save_upload_to_temp(file)
@@ -108,4 +112,31 @@ async def parse_resume_endpoint(file: UploadFile = File(...)) -> ResumeParseResu
     # Surface extraction warnings alongside parsing warnings.
     if extracted.warnings:
         result.warnings = [*extracted.warnings, *result.warnings]
+    return result
+
+
+@router.post("/resume/parse", response_model=ResumeParseResult, tags=["resume"])
+async def parse_resume_endpoint(file: UploadFile = File(...)) -> ResumeParseResult:
+    """Extract text from an uploaded resume and return a parsed profile.
+
+    Does NOT save anything; use /resume/parse-and-save to persist the profile.
+    """
+
+    return _extract_and_parse(file)
+
+
+@router.post(
+    "/resume/parse-and-save", response_model=ResumeParseResult, tags=["resume"]
+)
+async def parse_and_save_resume_endpoint(
+    file: UploadFile = File(...),
+) -> ResumeParseResult:
+    """Parse an uploaded resume and save the resulting profile locally.
+
+    The parsed profile always has ``needs_review = True`` and must be reviewed
+    by the user before it is trusted.
+    """
+
+    result = _extract_and_parse(file)
+    profile_storage.save_profile(result.profile)
     return result

@@ -1,122 +1,186 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import {
+  ApiError,
+  getProfile,
+  saveProfile,
+  updateReviewStatus,
+} from "./api/client";
+import { ProfileEditor } from "./components/ProfileEditor";
+import { ProfileSummary } from "./components/ProfileSummary";
+import { ResumeUpload } from "./components/ResumeUpload";
+import { ReviewPanel } from "./components/ReviewPanel";
+import { StatusBanner } from "./components/StatusBanner";
+import {
+  emptyProfile,
+  type CandidateProfile,
+} from "./types/candidateProfile";
+import type { ResumeParseResult } from "./types/resume";
+import "./styles/app.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [profile, setProfile] = useState<CandidateProfile | null>(null);
+  // Bumped whenever a fresh profile is loaded/parsed, to remount the editor.
+  const [editorKey, setEditorKey] = useState(0);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Try to load any previously saved profile on first render.
+  useEffect(() => {
+    void loadExistingProfile();
+  }, []);
+
+  function applyProfile(next: CandidateProfile) {
+    setProfile(next);
+    setEditorKey((k) => k + 1);
+  }
+
+  async function loadExistingProfile() {
+    setError(null);
+    try {
+      const existing = await getProfile();
+      applyProfile(existing);
+      setMessage("Loaded saved profile.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        // No saved profile yet - that's fine.
+        setMessage(null);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to load profile.");
+      }
+    }
+  }
+
+  function handleParsed(result: ResumeParseResult) {
+    applyProfile(result.profile);
+    setWarnings(result.warnings);
+    setMissingFields(result.missing_fields);
+    setMessage("Resume parsed and saved. Please review the fields below.");
+    setError(null);
+  }
+
+  function handleNewProfile() {
+    if (
+      profile &&
+      !window.confirm(
+        "Start a new blank profile in the editor? Your saved profile on disk is unchanged until you click Save profile.",
+      )
+    ) {
+      return;
+    }
+    applyProfile(emptyProfile());
+    setWarnings([]);
+    setMissingFields([]);
+    setMessage(
+      "New blank profile — fill in the fields below, then click Save profile.",
+    );
+    setError(null);
+  }
+
+  async function handleSave(updated: CandidateProfile) {
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await saveProfile(updated);
+      setProfile(saved);
+      setMessage("Profile saved locally.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save profile.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleReviewStatusChange(needsReview: boolean, note?: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await updateReviewStatus(needsReview, note);
+      setProfile(saved);
+      setMessage(
+        needsReview ? "Marked as needs review." : "Marked as reviewed.",
+      );
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setError("Save a profile before changing review status.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to update status.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app">
+      <header className="app-header">
+        <div className="header-row">
+          <div>
+            <h1>Resume Autofill Assistant — Local Dashboard</h1>
+            <p className="muted">
+              Upload a resume, start from scratch, review, and save locally. Nothing
+              leaves your machine.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="secondary"
+            onClick={handleNewProfile}
+            disabled={busy}
+          >
+            New profile
+          </button>
         </div>
-        <div>
-          <h1>template</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <StatusBanner />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {message && <div className="toast toast-info">{message}</div>}
+      {error && <div className="toast toast-error">{error}</div>}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <main className="layout">
+        <div className="column">
+          <ResumeUpload onParsed={handleParsed} />
+          {profile ? (
+            <ProfileEditor
+              key={editorKey}
+              profile={profile}
+              onSave={handleSave}
+              busy={busy}
+            />
+          ) : (
+            <section className="card">
+              <h2>2. Edit profile</h2>
+              <p className="muted">
+                No profile loaded yet. Click <strong>New profile</strong> above to
+                write one from scratch, or upload a resume.
+              </p>
+            </section>
+          )}
+        </div>
+
+        <div className="column">
+          {profile && <ProfileSummary profile={profile} />}
+          {profile && (
+            <ReviewPanel
+              profile={profile}
+              warnings={warnings}
+              missingFields={missingFields}
+              onReviewStatusChange={handleReviewStatusChange}
+              busy={busy}
+            />
+          )}
+        </div>
+      </main>
+
+      <footer className="app-footer muted">
+        Local-first · resume files are never stored · only the reviewed profile JSON
+        is saved
+      </footer>
+    </div>
+  );
 }
 
-export default App
+export default App;

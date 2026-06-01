@@ -50,6 +50,16 @@ uvicorn app.main:app --reload
 
 Then open the interactive docs at http://127.0.0.1:8000/docs.
 
+### CORS for the frontend
+
+For Phase 3, the API enables CORS for the local Vite dev server origins only:
+
+- `http://localhost:5173`
+- `http://127.0.0.1:5173`
+
+This is local-development only (configured in `app/main.py`). Do not broaden it
+for any real deployment.
+
 ## Run the tests
 
 ```bash
@@ -82,6 +92,49 @@ On Windows PowerShell, use `curl.exe` (not the `curl` alias) for `-F` uploads:
 
 ```powershell
 curl.exe -X POST http://127.0.0.1:8000/resume/parse -F "file=@C:\path\to\resume.txt"
+```
+
+Parse a resume and save the profile locally (Phase 3):
+
+```bash
+curl -X POST http://127.0.0.1:8000/resume/parse-and-save \
+  -F "file=@/path/to/resume.txt"
+```
+
+## Profile API (Phase 3)
+
+The reviewed candidate profile is stored locally as JSON
+(`backend/app/data/profile.json` by default; override with the
+`PROFILE_STORAGE_PATH` environment variable). Uploaded resume files are never
+stored permanently - only the profile JSON is. `profile.json` is git-ignored;
+treat it as sensitive personal data.
+
+Endpoints:
+
+- `GET /profile` - return the saved profile (404 if none saved).
+- `PUT /profile` - save (overwrite) the profile; returns the saved profile.
+- `PATCH /profile/review-status` - update `metadata.needs_review` and append a
+  review note.
+- `DELETE /profile` - delete the saved profile.
+
+Example requests:
+
+```bash
+# Get the saved profile
+curl http://127.0.0.1:8000/profile
+
+# Save a profile (PUT a full CandidateProfile JSON)
+curl -X PUT http://127.0.0.1:8000/profile \
+  -H "Content-Type: application/json" \
+  -d @profile.json
+
+# Mark the profile reviewed (or set needs_review true)
+curl -X PATCH http://127.0.0.1:8000/profile/review-status \
+  -H "Content-Type: application/json" \
+  -d '{"needs_review": false, "review_note": "Reviewed manually on local dashboard."}'
+
+# Delete the saved profile
+curl -X DELETE http://127.0.0.1:8000/profile
 ```
 
 ## Project layout

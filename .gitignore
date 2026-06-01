@@ -1,0 +1,25 @@
+# --- Local candidate/profile data (sensitive, never commit) ---
+backend/app/data/profile.json
+backend/app/data/*.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# --- Environment / secrets ---
+.env
+.env.*
+*.local
+
+# --- Node / frontend build output ---
+frontend/dist/
+dist/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
