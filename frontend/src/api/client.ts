@@ -2,6 +2,11 @@
 // Base URL defaults to the local FastAPI server and can be overridden with the
 // VITE_API_BASE_URL environment variable.
 
+import type {
+  AutofillResult,
+  FillPlan,
+  SampleFormsResponse,
+} from "../types/automation";
 import type { CandidateProfile } from "../types/candidateProfile";
 import type {
   DeleteProfileResponse,
@@ -96,4 +101,36 @@ export async function parseResumeAndSave(
     return parseError(response);
   }
   return (await response.json()) as ResumeParseResult;
+}
+
+// --- Phase 4: browser automation (local sample forms only) ---
+
+export async function getSampleForms(): Promise<string[]> {
+  const data = await jsonRequest<SampleFormsResponse>("/automation/sample-forms");
+  return data.forms;
+}
+
+export async function analyzeSampleForm(formName: string): Promise<FillPlan> {
+  return jsonRequest<FillPlan>("/automation/analyze", {
+    method: "POST",
+    body: JSON.stringify({ form_name: formName }),
+  });
+}
+
+export async function dryRunSampleForm(
+  formName: string,
+): Promise<AutofillResult> {
+  return jsonRequest<AutofillResult>("/automation/dry-run", {
+    method: "POST",
+    body: JSON.stringify({ form_name: formName }),
+  });
+}
+
+export async function runSampleAutofill(
+  formName: string,
+): Promise<AutofillResult> {
+  return jsonRequest<AutofillResult>("/automation/run-sample", {
+    method: "POST",
+    body: JSON.stringify({ form_name: formName, headless: true, dry_run: false }),
+  });
 }

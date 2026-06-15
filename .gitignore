@@ -2,6 +2,10 @@
 backend/app/data/profile.json
 backend/app/data/*.json
 
+# --- Automation reports (redacted, but still local-only; keep the folder) ---
+backend/app/data/automation-reports/*.json
+!backend/app/data/automation-reports/.gitkeep
+
 # --- Python ---
 __pycache__/
 *.py[cod]

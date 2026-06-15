@@ -1,9 +1,11 @@
 # Resume Autofill Assistant - Backend
 
 Local-first personal job-application autofill assistant. This backend covers
-**Phase 1** (candidate profile schema) and **Phase 2** (resume ingestion and
-parsing). There is no browser automation, scraping, login automation, or
-auto-submit behavior here.
+**Phase 1** (candidate profile schema), **Phase 2** (resume ingestion and
+parsing), **Phase 3** (local profile storage), and **Phase 4** (a local-only
+browser-automation prototype). There is no scraping, login automation, or
+auto-submit behavior here, and automation only ever touches the local sample
+forms in `sample-forms/`.
 
 ## Requirements
 
@@ -36,11 +38,22 @@ pip install -e ".[dev]"
 ```
 
 This installs FastAPI, Uvicorn, Pydantic, python-multipart, PyMuPDF,
-python-docx, and email-validator, plus the dev tools (pytest, httpx).
+python-docx, email-validator, and Playwright, plus the dev tools (pytest, httpx).
 
 > Note: PyMuPDF and python-docx are imported lazily. If a wheel is unavailable
 > for your Python version, TXT extraction and the test suite still work; PDF /
 > DOCX extraction will return a clear warning until the library installs.
+
+### 3. Install the Playwright browser (Phase 4)
+
+The browser-automation prototype needs the Chromium binary:
+
+```bash
+python -m playwright install chromium
+```
+
+This is a one-time download. Automation features (and their tests) skip cleanly
+with a clear message until this is installed.
 
 ## Run the API locally
 
@@ -137,24 +150,80 @@ curl -X PATCH http://127.0.0.1:8000/profile/review-status \
 curl -X DELETE http://127.0.0.1:8000/profile
 ```
 
+## Browser automation prototype (Phase 4)
+
+The prototype fills **local sample forms only** (`sample-forms/`). It never
+opens real job sites, never submits, and leaves sensitive/legal fields for
+manual review. See
+[`../docs/phase-4-browser-automation-prototype.md`](../docs/phase-4-browser-automation-prototype.md).
+
+### CLI demo
+
+Run from the `backend/` directory with a saved profile:
+
+```bash
+python -m app.scripts.run_local_autofill_demo --form basic --dry-run
+python -m app.scripts.run_local_autofill_demo --form basic --headful
+python -m app.scripts.run_local_autofill_demo --form engineering --headful
+python -m app.scripts.run_local_autofill_demo --form engineering --headful \
+    --resume-file "path/to/resume.pdf"
+```
+
+### Automation API endpoints
+
+- `GET /automation/sample-forms` - list known local forms (`basic`, `engineering`).
+- `POST /automation/analyze` `{"form_name": "basic"}` - return a `FillPlan` (no filling).
+- `POST /automation/dry-run` `{"form_name": "basic"}` - run a no-type pass, return an `AutofillResult`.
+- `POST /automation/run-sample` `{"form_name": "basic", "headless": true}` - fill the local form, return an `AutofillResult`.
+
+No automation endpoint accepts an arbitrary or external URL.
+
+Redacted JSON reports are written under `backend/app/data/automation-reports/`
+(git-ignored). Override the location with `AUTOMATION_REPORTS_DIR`.
+
+### Troubleshooting
+
+- **"Playwright could not launch Chromium"** - run `python -m playwright install chromium`.
+- **"No saved profile found"** - upload and review/save a profile first (dashboard
+  or `/resume` + `/profile`), then retry.
+- **Browser opens and closes too fast** - use the CLI with `--headful --keep-open`
+  to keep the window open until you press Enter.
+- **Fields not detected** - confirm the field is a real `input`/`textarea`/`select`
+  and is visible; hidden/disabled fields are intentionally skipped.
+- **"Unknown sample form"** - only `basic` and `engineering` are allowed; arbitrary
+  URLs are never accepted in Phase 4.
+
 ## Project layout
 
 ```
 backend/
   app/
-    main.py                     FastAPI app
+    main.py                       FastAPI app
     models/
-      candidate_profile.py      Phase 1 Pydantic schema
-      resume.py                 ExtractedResumeText, ResumeParseResult
+      candidate_profile.py        Phase 1 Pydantic schema
+      resume.py                   ExtractedResumeText, ResumeParseResult
+      automation.py               Phase 4 automation models
     services/
-      resume_text_extractor.py  PDF/DOCX/TXT -> text
-      resume_profile_parser.py  text -> rough profile (+ AI hook stub)
-    api/routes/resume.py        /health, /resume/extract-text, /resume/parse
-    utils/file_validation.py    extension/empty checks
-  tests/                        pytest suite (offline)
+      resume_text_extractor.py    PDF/DOCX/TXT -> text
+      resume_profile_parser.py    text -> rough profile (+ AI hook stub)
+      profile_storage.py          local profile JSON load/save
+      form_field_detector.py      Phase 4 Playwright field detection
+      field_mapper.py             Phase 4 deterministic mapping
+      playwright_autofill.py      Phase 4 autofill runner (never submits)
+      automation_report_storage.py  Phase 4 redacted report storage
+      sample_forms.py             Phase 4 approved local-form registry
+    api/routes/resume.py          /health, /resume/*
+    api/routes/profile.py         /profile/*
+    api/routes/automation.py      /automation/*
+    scripts/run_local_autofill_demo.py  Phase 4 CLI demo
+    utils/file_validation.py      extension/empty checks
+    data/automation-reports/      redacted reports (git-ignored)
+  tests/                          pytest suite (offline)
   pyproject.toml
 ```
 
-See [`../docs/phase-1-profile-schema.md`](../docs/phase-1-profile-schema.md) and
-[`../docs/phase-2-resume-ingestion.md`](../docs/phase-2-resume-ingestion.md) for
-design details.
+See the design docs in [`../docs/`](../docs/):
+[Phase 1](../docs/phase-1-profile-schema.md),
+[Phase 2](../docs/phase-2-resume-ingestion.md),
+[Phase 3](../docs/phase-3-local-dashboard.md), and
+[Phase 4](../docs/phase-4-browser-automation-prototype.md).

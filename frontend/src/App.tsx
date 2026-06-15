@@ -5,6 +5,7 @@ import {
   saveProfile,
   updateReviewStatus,
 } from "./api/client";
+import { AutomationPrototype } from "./components/AutomationPrototype";
 import { ProfileEditor } from "./components/ProfileEditor";
 import { ProfileSummary } from "./components/ProfileSummary";
 import { ResumeUpload } from "./components/ResumeUpload";
@@ -172,6 +173,7 @@ function App() {
               busy={busy}
             />
           )}
+          <AutomationPrototype />
         </div>
       </main>
 

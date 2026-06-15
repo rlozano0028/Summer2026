@@ -15,6 +15,10 @@ your machine.
   [docs/phase-2-resume-ingestion.md](docs/phase-2-resume-ingestion.md).
 - **Phase 3** - Local dashboard to upload, review, edit, and save the profile.
   See [docs/phase-3-local-dashboard.md](docs/phase-3-local-dashboard.md).
+- **Phase 4** - Local-only browser-automation prototype (Playwright) that fills
+  sample forms from the saved profile, never submits, and leaves sensitive/legal
+  fields for manual review. See
+  [docs/phase-4-browser-automation-prototype.md](docs/phase-4-browser-automation-prototype.md).
 
 ## Run it locally
 
@@ -38,6 +42,20 @@ npm run dev
 ```
 
 Open the frontend URL (default http://localhost:5173) with the backend running.
+
+## Browser automation prototype (Phase 4)
+
+Install the Playwright browser once, then run the local demo (from `backend/`,
+with a saved profile):
+
+```bash
+python -m playwright install chromium
+python -m app.scripts.run_local_autofill_demo --form basic --dry-run
+python -m app.scripts.run_local_autofill_demo --form engineering --headful
+```
+
+This only fills the local sample forms in `sample-forms/`. It never targets real
+job sites and never submits.
 
 ## Privacy
 

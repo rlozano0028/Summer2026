@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sample Basic Application (LOCAL TEST FORM)</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        max-width: 640px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        color: #1f2933;
+      }
+      .notice {
+        background: #fff4e5;
+        border: 1px solid #f0b357;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+      }
+      .field {
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+      }
+      label {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+      input,
+      textarea {
+        padding: 0.5rem;
+        border: 1px solid #cbd2d9;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        border: none;
+        background: #9aa5b1;
+        color: white;
+        font-size: 1rem;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sample Basic Application</h1>
+    <p class="notice">
+      This is a <strong>fake, local-only</strong> test form used by the autofill
+      prototype. It does not submit anywhere and the submit button is disabled.
+    </p>
+
+    <!-- onsubmit returns false as a second guard so nothing is ever submitted. -->
+    <form id="basic-application" onsubmit="return false">
+      <div class="field">
+        <label for="first_name">First name</label>
+        <input
+          type="text"
+          id="first_name"
+          name="first_name"
+          autocomplete="given-name"
+          placeholder="Ada"
+        />
+      </div>
+
+      <div class="field">
+        <label for="last_name">Last name</label>
+        <input
+          type="text"
+          id="last_name"
+          name="last_name"
+          autocomplete="family-name"
+          placeholder="Lovelace"
+        />
+      </div>
+
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input
+          type="text"
+          id="full_name"
+          name="full_name"
+          autocomplete="name"
+          placeholder="Ada Lovelace"
+        />
+      </div>
+
+      <div class="field">
+        <label for="email">Email address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+        />
+      </div>
+
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input
+          type="tel"
+          id="phone"
+          name="phone"
+          autocomplete="tel"
+          placeholder="(555) 555-5555"
+        />
+      </div>
+
+      <div class="field">
+        <label for="city">City</label>
+        <input type="text" id="city" name="city" autocomplete="address-level2" />
+      </div>
+
+      <div class="field">
+        <label for="state">State / Province</label>
+        <input type="text" id="state" name="state" autocomplete="address-level1" />
+      </div>
+
+      <div class="field">
+        <label for="country">Country</label>
+        <input type="text" id="country" name="country" autocomplete="country-name" />
+      </div>
+
+      <div class="field">
+        <label for="linkedin">LinkedIn URL</label>
+        <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/..." />
+      </div>
+
+      <div class="field">
+        <label for="github">GitHub URL</label>
+        <input type="url" id="github" name="github" placeholder="https://github.com/..." />
+      </div>
+
+      <div class="field">
+        <label for="portfolio">Portfolio / Website URL</label>
+        <input type="url" id="portfolio" name="portfolio" placeholder="https://..." />
+      </div>
+
+      <div class="field">
+        <label for="skills">Skills</label>
+        <input
+          type="text"
+          id="skills"
+          name="skills"
+          placeholder="Comma-separated list of skills"
+          aria-label="Skills"
+        />
+      </div>
+
+      <div class="field">
+        <label for="resume">Resume / CV (upload)</label>
+        <input type="file" id="resume" name="resume" accept=".pdf,.docx,.txt" />
+      </div>
+
+      <div class="field">
+        <label for="short_answer">Why are you interested in this role?</label>
+        <textarea
+          id="short_answer"
+          name="short_answer"
+          rows="4"
+          placeholder="A few sentences..."
+        ></textarea>
+      </div>
+
+      <button type="submit" id="submit" disabled>Submit (disabled)</button>
+    </form>
+  </body>
+</html>

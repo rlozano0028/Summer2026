@@ -263,3 +263,81 @@ button.secondary {
   margin-top: 24px;
   text-align: center;
 }
+
+/* Automation prototype (Phase 4) */
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+.field-row label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.automation-results {
+  margin-top: 12px;
+}
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #eef2ff;
+}
+.pill-fill {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+.pill-suggest {
+  background: var(--review-bg);
+  color: var(--review-text);
+}
+.pill-manual {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+.pill-skip {
+  background: #e5e7eb;
+  color: #374151;
+}
+.automation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.automation-table th,
+.automation-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.flag {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  background: #e5e7eb;
+  margin-right: 4px;
+}
+.flag-sensitive {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+.automation-warning {
+  margin-top: 12px;
+  font-weight: 600;
+}

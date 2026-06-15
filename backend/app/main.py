@@ -11,14 +11,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
-from app.api.routes import profile, resume
+from app.api.routes import automation, profile, resume
 
 app = FastAPI(
     title="Resume Autofill Assistant",
     description=(
         "Local-first personal job-application autofill assistant. "
-        "Phase 1-3: profile schema, resume ingestion/parsing, and local "
-        "dashboard profile storage."
+        "Phase 1-4: profile schema, resume ingestion/parsing, local dashboard "
+        "profile storage, and a local-only browser-automation prototype."
     ),
     version=__version__,
 )
@@ -41,6 +41,7 @@ app.add_middleware(
 # resume.router includes /health, /resume/*; profile.router adds /profile/*.
 app.include_router(resume.router)
 app.include_router(profile.router)
+app.include_router(automation.router)
 
 
 @app.get("/", tags=["system"])
