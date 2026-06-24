@@ -6,6 +6,10 @@ backend/app/data/*.json
 backend/app/data/automation-reports/*.json
 !backend/app/data/automation-reports/.gitkeep
 
+# --- Mapping overrides (local-only, user-controlled; keep the folder) ---
+backend/app/data/mapping-overrides/*.json
+!backend/app/data/mapping-overrides/.gitkeep
+
 # --- Python ---
 __pycache__/
 *.py[cod]

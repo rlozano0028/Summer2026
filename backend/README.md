@@ -171,27 +171,65 @@ python -m app.scripts.run_local_autofill_demo --form engineering --headful \
 
 ### Automation API endpoints
 
-- `GET /automation/sample-forms` - list known local forms (`basic`, `engineering`).
-- `POST /automation/analyze` `{"form_name": "basic"}` - return a `FillPlan` (no filling).
+- `GET /automation/sample-forms` - list known local forms (`basic`,
+  `engineering`, `edge-case-labels`, `sensitive-fields`,
+  `select-radio-checkboxes`).
+- `POST /automation/analyze` `{"form_name": "basic"}` - return an enriched
+  `FillPlan` (no filling), with overrides applied.
 - `POST /automation/dry-run` `{"form_name": "basic"}` - run a no-type pass, return an `AutofillResult`.
-- `POST /automation/run-sample` `{"form_name": "basic", "headless": true}` - fill the local form, return an `AutofillResult`.
+- `POST /automation/run-sample` `{"form_name": "basic", "headless": true, "dry_run": false}` - fill the local form, return an `AutofillResult`.
 
 No automation endpoint accepts an arbitrary or external URL.
 
 Redacted JSON reports are written under `backend/app/data/automation-reports/`
 (git-ignored). Override the location with `AUTOMATION_REPORTS_DIR`.
 
+## Field-mapping engine (Phase 5)
+
+Phase 5 makes mapping explainable and testable. Each detected field is enriched
+into a `FieldContext`, classified into a `FieldCategory` with evidence-based
+confidence, checked against the sensitive-field detector, resolved to a redacted
+profile value, and assigned an action (`fill` / `suggest` / `manual_review` /
+`skip`). See
+[`../docs/phase-5-field-mapping-engine.md`](../docs/phase-5-field-mapping-engine.md).
+
+Services: `field_context_builder.py`, `sensitive_field_detector.py`,
+`field_value_resolver.py`, `redaction.py`, `field_mapping_overrides.py`, and the
+refactored `field_mapper.py`.
+
+### Mapping override endpoints (local-only)
+
+- `GET /mapping-overrides` (optional `?form_name=basic`) - list saved overrides.
+- `POST /mapping-overrides` - create/update an override; sensitive force-fills
+  are downgraded to manual review with a warning.
+- `DELETE /mapping-overrides/{override_id}` - delete an override.
+- `POST /mapping-overrides/apply-to-plan` `{"form_name": "basic"}` - re-analyze a
+  form with overrides applied.
+
+Overrides are stored under `backend/app/data/mapping-overrides/` (git-ignored).
+Override the location with `MAPPING_OVERRIDES_DIR`. Fingerprints contain only
+non-private field metadata; no profile values are stored.
+
 ### Troubleshooting
 
 - **"Playwright could not launch Chromium"** - run `python -m playwright install chromium`.
 - **"No saved profile found"** - upload and review/save a profile first (dashboard
   or `/resume` + `/profile`), then retry.
+- **Fields detected but not filled** - the value may be missing in the profile
+  (`missing_value`), the confidence may be below the fill threshold, or the field
+  may be a textarea/checkbox/radio/file (conservative by design). Check the
+  decision's `reason` and `evidence`.
+- **Confidence too low** - add a local mapping override to pin the category, or
+  improve the saved profile so the value resolves.
+- **Sensitive field not autofilled** - this is intentional and cannot be
+  overridden; sensitive/legal fields are always manual review.
+- **Override not applying** - overrides match on `form_name` + `field_fingerprint`.
+  Use the short form name (e.g. `basic`) and the fingerprint from the field's
+  mapping (`FieldMapping.field_fingerprint`).
 - **Browser opens and closes too fast** - use the CLI with `--headful --keep-open`
   to keep the window open until you press Enter.
-- **Fields not detected** - confirm the field is a real `input`/`textarea`/`select`
-  and is visible; hidden/disabled fields are intentionally skipped.
-- **"Unknown sample form"** - only `basic` and `engineering` are allowed; arbitrary
-  URLs are never accepted in Phase 4.
+- **"Unknown sample form"** - only the five known local forms are allowed;
+  arbitrary URLs are never accepted.
 
 ## Project layout
 
@@ -203,21 +241,30 @@ backend/
       candidate_profile.py        Phase 1 Pydantic schema
       resume.py                   ExtractedResumeText, ResumeParseResult
       automation.py               Phase 4 automation models
+    models/
+      field_mapping.py            Phase 5 mapping models (FieldContext, etc.)
     services/
       resume_text_extractor.py    PDF/DOCX/TXT -> text
       resume_profile_parser.py    text -> rough profile (+ AI hook stub)
       profile_storage.py          local profile JSON load/save
-      form_field_detector.py      Phase 4 Playwright field detection
-      field_mapper.py             Phase 4 deterministic mapping
-      playwright_autofill.py      Phase 4 autofill runner (never submits)
-      automation_report_storage.py  Phase 4 redacted report storage
-      sample_forms.py             Phase 4 approved local-form registry
+      form_field_detector.py      Playwright field detection
+      field_context_builder.py    Phase 5 raw field -> enriched FieldContext
+      sensitive_field_detector.py Phase 5 sensitive/legal detection
+      field_value_resolver.py     Phase 5 category -> redacted profile value
+      redaction.py                Phase 5 preview redaction helpers
+      field_mapper.py             Phase 5 explainable mapping engine
+      field_mapping_overrides.py  Phase 5 local override store
+      playwright_autofill.py      autofill runner (never submits)
+      automation_report_storage.py  redacted report storage
+      sample_forms.py             approved local-form registry
     api/routes/resume.py          /health, /resume/*
     api/routes/profile.py         /profile/*
     api/routes/automation.py      /automation/*
-    scripts/run_local_autofill_demo.py  Phase 4 CLI demo
+    api/routes/mapping_overrides.py  /mapping-overrides/*
+    scripts/run_local_autofill_demo.py  CLI demo
     utils/file_validation.py      extension/empty checks
     data/automation-reports/      redacted reports (git-ignored)
+    data/mapping-overrides/       local overrides (git-ignored)
   tests/                          pytest suite (offline)
   pyproject.toml
 ```
@@ -225,5 +272,6 @@ backend/
 See the design docs in [`../docs/`](../docs/):
 [Phase 1](../docs/phase-1-profile-schema.md),
 [Phase 2](../docs/phase-2-resume-ingestion.md),
-[Phase 3](../docs/phase-3-local-dashboard.md), and
-[Phase 4](../docs/phase-4-browser-automation-prototype.md).
+[Phase 3](../docs/phase-3-local-dashboard.md),
+[Phase 4](../docs/phase-4-browser-automation-prototype.md), and
+[Phase 5](../docs/phase-5-field-mapping-engine.md).

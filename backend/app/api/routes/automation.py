@@ -86,7 +86,7 @@ def analyze(body: AnalyzeRequest) -> FillPlan:
     profile = _load_profile_or_404()
     form_path = _resolve_form_or_400(body.form_name)
     try:
-        return analyze_local_form(form_path, profile)
+        return analyze_local_form(form_path, profile, form_name=body.form_name)
     except PlaywrightSetupError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 

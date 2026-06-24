@@ -4,16 +4,11 @@ import {
   dryRunSampleForm,
   getSampleForms,
 } from "../api/client";
-import type { AutofillResult, FieldAction, FillPlan } from "../types/automation";
+import type { AutofillResult, FillPlan } from "../types/automation";
+import { FieldMappingReview } from "./FieldMappingReview";
+import { MappingOverrideEditor } from "./MappingOverrideEditor";
 
-const ACTION_LABELS: Record<FieldAction, string> = {
-  fill: "Fill",
-  suggest: "Suggest",
-  manual_review: "Manual review",
-  skip: "Skip",
-};
-
-// Phase 4 automation panel. Works against local sample forms only.
+// Phase 5 automation panel. Works against local sample forms only.
 export function AutomationPrototype() {
   const [forms, setForms] = useState<string[]>([]);
   const [selectedForm, setSelectedForm] = useState<string>("");
@@ -67,13 +62,16 @@ export function AutomationPrototype() {
     }
   }
 
+  const sensitiveCount =
+    plan?.mappings?.filter((m) => m.sensitive).length ?? 0;
+
   return (
     <section className="card">
-      <h2>Automation prototype (Phase 4)</h2>
+      <h2>Field-mapping review (Phase 5)</h2>
       <p className="muted">
-        This prototype only fills <strong>local sample forms</strong> shipped with
-        the app. It does not support real job sites, never submits, and leaves
-        sensitive/legal fields for manual review.
+        This prototype only analyzes <strong>local sample forms</strong> shipped
+        with the app. It does not support real job sites, never submits, and
+        always leaves sensitive/legal fields for manual review.
       </p>
 
       <div className="field-row">
@@ -110,48 +108,18 @@ export function AutomationPrototype() {
 
       {plan && (
         <div className="automation-results">
-          <div className="counts">
-            <span className="pill pill-fill">Fill: {plan.fill_count}</span>
-            <span className="pill pill-suggest">Suggest: {plan.suggest_count}</span>
-            <span className="pill pill-manual">
-              Manual review: {plan.manual_review_count}
-            </span>
-            <span className="pill pill-skip">Skip: {plan.skip_count}</span>
-          </div>
-
-          <table className="automation-table">
-            <thead>
-              <tr>
-                <th>Field</th>
-                <th>Action</th>
-                <th>Confidence</th>
-                <th>Reason</th>
-                <th>Flags</th>
-              </tr>
-            </thead>
-            <tbody>
-              {plan.mappings.map((mapping) => (
-                <tr key={mapping.field_id}>
-                  <td>{mapping.profile_path ?? mapping.selector}</td>
-                  <td>{ACTION_LABELS[mapping.action]}</td>
-                  <td>{mapping.confidence.toFixed(2)}</td>
-                  <td>{mapping.reason}</td>
-                  <td>
-                    {mapping.sensitive && <span className="flag flag-sensitive">sensitive</span>}
-                    {mapping.missing_value && <span className="flag">missing</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {plan.warnings.length > 0 && (
-            <ul className="muted">
-              {plan.warnings.map((w, i) => (
-                <li key={i}>{w}</li>
-              ))}
-            </ul>
+          {sensitiveCount > 0 && (
+            <div className="toast toast-error">
+              {sensitiveCount} sensitive/legal field(s) detected - all left for
+              manual review and never autofilled.
+            </div>
           )}
+          <FieldMappingReview plan={plan} />
+          <MappingOverrideEditor
+            plan={plan}
+            formName={selectedForm}
+            onSaved={() => void handleAnalyze()}
+          />
         </div>
       )}
 
@@ -161,7 +129,7 @@ export function AutomationPrototype() {
           <p className="muted">Nothing was typed into the form (dry run).</p>
           <div className="counts">
             <span className="pill pill-fill">
-              Filled: {dryRunResult.filled_fields.length}
+              Would fill: {dryRunResult.filled_fields.length}
             </span>
             <span className="pill pill-suggest">
               Suggested: {dryRunResult.suggested_fields.length}

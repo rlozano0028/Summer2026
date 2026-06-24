@@ -129,6 +129,11 @@ DETECT_FIELDS_JS = r"""
       options = Array.from(el.options).map((o) => o.value || o.textContent.trim());
     }
 
+    const isTextarea = tag === "textarea";
+    const isSelect = tag === "select";
+    const isCheckbox = tag === "input" && type === "checkbox";
+    const isRadio = tag === "input" && type === "radio";
+
     return {
       field_id: `field-${index}`,
       selector: stableSelector(el, index),
@@ -148,6 +153,10 @@ DETECT_FIELDS_JS = r"""
       options: options,
       is_file_upload: isFile,
       is_submit_control: isSubmit,
+      is_textarea: isTextarea,
+      is_select: isSelect,
+      is_checkbox: isCheckbox,
+      is_radio: isRadio,
     };
   });
 }

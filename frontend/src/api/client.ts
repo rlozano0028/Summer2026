@@ -2,11 +2,18 @@
 // Base URL defaults to the local FastAPI server and can be overridden with the
 // VITE_API_BASE_URL environment variable.
 
-import type {
-  AutofillResult,
-  FillPlan,
-  SampleFormsResponse,
+import {
+  normalizeFillPlan,
+  type AutofillResult,
+  type FillPlan,
+  type RunSampleOptions,
+  type SampleFormsResponse,
 } from "../types/automation";
+import type {
+  MappingOverride,
+  MappingOverrideCreate,
+  SaveOverrideResponse,
+} from "../types/fieldMapping";
 import type { CandidateProfile } from "../types/candidateProfile";
 import type {
   DeleteProfileResponse,
@@ -111,10 +118,11 @@ export async function getSampleForms(): Promise<string[]> {
 }
 
 export async function analyzeSampleForm(formName: string): Promise<FillPlan> {
-  return jsonRequest<FillPlan>("/automation/analyze", {
+  const raw = await jsonRequest<FillPlan>("/automation/analyze", {
     method: "POST",
     body: JSON.stringify({ form_name: formName }),
   });
+  return normalizeFillPlan(raw);
 }
 
 export async function dryRunSampleForm(
@@ -128,9 +136,41 @@ export async function dryRunSampleForm(
 
 export async function runSampleAutofill(
   formName: string,
+  options: RunSampleOptions = {},
 ): Promise<AutofillResult> {
   return jsonRequest<AutofillResult>("/automation/run-sample", {
     method: "POST",
-    body: JSON.stringify({ form_name: formName, headless: true, dry_run: false }),
+    body: JSON.stringify({
+      form_name: formName,
+      headless: options.headless ?? true,
+      dry_run: options.dryRun ?? false,
+    }),
   });
+}
+
+// --- Phase 5: local mapping overrides (local-only, user-controlled) ---
+
+export async function getMappingOverrides(
+  formName?: string,
+): Promise<MappingOverride[]> {
+  const query = formName ? `?form_name=${encodeURIComponent(formName)}` : "";
+  return jsonRequest<MappingOverride[]>(`/mapping-overrides${query}`);
+}
+
+export async function saveMappingOverride(
+  override: MappingOverrideCreate,
+): Promise<SaveOverrideResponse> {
+  return jsonRequest<SaveOverrideResponse>("/mapping-overrides", {
+    method: "POST",
+    body: JSON.stringify(override),
+  });
+}
+
+export async function deleteMappingOverride(
+  overrideId: string,
+): Promise<{ deleted: boolean; override_id: string }> {
+  return jsonRequest<{ deleted: boolean; override_id: string }>(
+    `/mapping-overrides/${encodeURIComponent(overrideId)}`,
+    { method: "DELETE" },
+  );
 }

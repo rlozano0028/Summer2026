@@ -55,13 +55,20 @@ def _label_for(field: FormField) -> str:
     return field.label_text or field.name or field.id_attribute or field.field_id
 
 
-def analyze_local_form(form_path: Path, profile: CandidateProfile) -> FillPlan:
+def analyze_local_form(
+    form_path: Path,
+    profile: CandidateProfile,
+    form_name: str | None = None,
+) -> FillPlan:
     """Open a local form headlessly, detect fields, and build a fill plan.
 
     Nothing is filled and the browser is always closed before returning.
+    ``form_name`` should be the short sample-form name (e.g. ``"basic"``) so it
+    matches the key used when saving mapping overrides; it defaults to the file
+    stem when omitted.
     """
 
-    form_name = form_path.stem
+    resolved_name = form_name or form_path.stem
     form_url = _path_to_file_url(form_path)
 
     with _launch_browser(headless=True) as (browser, page):
@@ -69,7 +76,7 @@ def analyze_local_form(form_path: Path, profile: CandidateProfile) -> FillPlan:
         fields = detect_form_fields(page)
         browser.close()
 
-    return build_fill_plan(form_name, form_url, fields, profile)
+    return build_fill_plan(resolved_name, form_url, fields, profile)
 
 
 def run_local_autofill(
@@ -79,7 +86,7 @@ def run_local_autofill(
 ) -> AutofillResult:
     """Detect, plan, and (unless dry-run) fill a local form. Never submits."""
 
-    form_name = form_path.stem
+    form_name = request.form_name or form_path.stem
     form_url = _path_to_file_url(form_path)
     started_at = datetime.now(timezone.utc)
 
@@ -99,17 +106,19 @@ def run_local_autofill(
         for mapping in plan.mappings:
             field = field_by_id.get(mapping.field_id)
             label = _label_for(field) if field else mapping.field_id
+            tooltip = _tooltip_for(mapping)
 
             if mapping.action == ACTION_SUGGEST:
                 suggested.append(label)
-                _mark_field(page, mapping.selector, "suggest")
+                _mark_field(page, mapping.selector, "suggest", tooltip)
                 continue
             if mapping.action == ACTION_MANUAL_REVIEW:
                 manual_review.append(label)
-                _mark_field(page, mapping.selector, "manual")
+                _mark_field(page, mapping.selector, "manual", tooltip)
                 continue
             if mapping.action == ACTION_SKIP:
                 skipped.append(label)
+                _mark_field(page, mapping.selector, "skip", tooltip)
                 continue
             if mapping.action != ACTION_FILL:
                 skipped.append(label)
@@ -130,11 +139,13 @@ def run_local_autofill(
             if request.dry_run:
                 # Honest accounting: nothing was typed during a dry run.
                 suggested.append(f"{label} (would fill)")
+                _mark_field(page, mapping.selector, "suggest", tooltip)
             elif would_fill:
                 filled.append(label)
-                _mark_field(page, mapping.selector, "filled")
+                _mark_field(page, mapping.selector, "filled", tooltip)
             else:
                 manual_review.append(label)
+                _mark_field(page, mapping.selector, "manual", tooltip)
 
         if request.dry_run:
             warnings.append(
@@ -163,6 +174,7 @@ def run_local_autofill(
         skipped_fields=skipped,
         warnings=warnings,
         success=True,
+        plan=plan,
     )
     report_path = automation_report_storage.save_report(result)
     result.report_path = str(report_path)
@@ -271,20 +283,38 @@ def _try_set_resume(
         return False
 
 
-def _mark_field(page: "Page", selector: str, kind: str) -> None:
-    """Best-effort visual marking for local debugging only."""
+def _tooltip_for(mapping: FieldMapping) -> str:
+    """Build a short, private-value-free tooltip for local debugging.
+
+    Only the action, category, and confidence are exposed - never a value.
+    """
+
+    confidence = f"{mapping.confidence:.2f}" if mapping.confidence else "0.00"
+    return f"[{mapping.action}] {mapping.category} (confidence {confidence})"
+
+
+def _mark_field(page: "Page", selector: str, kind: str, title: str = "") -> None:
+    """Best-effort visual marking for local debugging only.
+
+    Outlines the field by action and sets a ``title`` tooltip. The tooltip never
+    contains a private value (only action/category/confidence).
+    """
 
     colors = {
-        "filled": "#16a34a",  # green
-        "suggest": "#d97706",  # amber
-        "manual": "#dc2626",  # red
+        "filled": "#16a34a",  # green - will fill
+        "suggest": "#d97706",  # amber - suggested
+        "manual": "#dc2626",  # red - manual review
+        "skip": "#9aa5b1",  # gray - skipped
     }
     color = colors.get(kind, "#2563eb")
     try:
         page.eval_on_selector(
             selector,
-            "(el, color) => { el.style.outline = '2px solid ' + color; }",
-            color,
+            """(el, args) => {
+                el.style.outline = '2px solid ' + args.color;
+                if (args.title) { el.title = args.title; }
+            }""",
+            {"color": color, "title": title},
         )
     except Exception:  # noqa: BLE001 - marking is cosmetic; never fail the run.
         pass

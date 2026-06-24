@@ -19,6 +19,11 @@ your machine.
   sample forms from the saved profile, never submits, and leaves sensitive/legal
   fields for manual review. See
   [docs/phase-4-browser-automation-prototype.md](docs/phase-4-browser-automation-prototype.md).
+- **Phase 5** - An explainable, testable field-mapping engine: enriched field
+  context, evidence-based classification + confidence, aggressive sensitive-field
+  detection, redacted value resolution, and local user-controlled mapping
+  overrides - still local sample forms only, still never submits. See
+  [docs/phase-5-field-mapping-engine.md](docs/phase-5-field-mapping-engine.md).
 
 ## Run it locally
 
@@ -56,6 +61,23 @@ python -m app.scripts.run_local_autofill_demo --form engineering --headful
 
 This only fills the local sample forms in `sample-forms/`. It never targets real
 job sites and never submits.
+
+## Field-mapping engine (Phase 5)
+
+Phase 5 adds an explainable mapping engine and local mapping overrides. Analyze
+any of the five local sample forms (`basic`, `engineering`, `edge-case-labels`,
+`sensitive-fields`, `select-radio-checkboxes`) from the dashboard or CLI, review
+the grouped decisions with evidence, and pin per-field overrides locally.
+
+Run the checks:
+
+```bash
+# Backend tests (from backend/, venv active)
+pytest
+
+# Frontend build (from frontend/)
+npm run build
+```
 
 ## Privacy
 

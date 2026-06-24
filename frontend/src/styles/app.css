@@ -341,3 +341,49 @@ button.secondary {
   margin-top: 12px;
   font-weight: 600;
 }
+
+/* Phase 5: field-mapping review + override editor. */
+.mapping-group {
+  margin-top: 14px;
+}
+.mapping-group h4 {
+  margin: 0 0 6px;
+}
+.mapping-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mapping-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.mapping-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mapping-reason {
+  margin-top: 2px;
+  font-size: 13px;
+}
+.mapping-warning {
+  margin-top: 6px;
+}
+.evidence-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+.plan-warnings {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+.override-editor {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}

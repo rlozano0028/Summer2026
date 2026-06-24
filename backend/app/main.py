@@ -11,14 +11,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
-from app.api.routes import automation, profile, resume
+from app.api.routes import automation, mapping_overrides, profile, resume
 
 app = FastAPI(
     title="Resume Autofill Assistant",
     description=(
         "Local-first personal job-application autofill assistant. "
-        "Phase 1-4: profile schema, resume ingestion/parsing, local dashboard "
-        "profile storage, and a local-only browser-automation prototype."
+        "Phase 1-5: profile schema, resume ingestion/parsing, local dashboard "
+        "profile storage, a local-only browser-automation prototype, and an "
+        "explainable field-mapping engine with local mapping overrides."
     ),
     version=__version__,
 )
@@ -42,6 +43,7 @@ app.add_middleware(
 app.include_router(resume.router)
 app.include_router(profile.router)
 app.include_router(automation.router)
+app.include_router(mapping_overrides.router)
 
 
 @app.get("/", tags=["system"])

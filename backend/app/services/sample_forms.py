@@ -21,6 +21,9 @@ _DEFAULT_SAMPLE_FORMS_DIR = Path(__file__).resolve().parents[3] / "sample-forms"
 KNOWN_FORMS: dict[str, str] = {
     "basic": "basic-application.html",
     "engineering": "engineering-application.html",
+    "edge-case-labels": "edge-case-labels.html",
+    "sensitive-fields": "sensitive-fields.html",
+    "select-radio-checkboxes": "select-radio-checkboxes.html",
 }
 
 

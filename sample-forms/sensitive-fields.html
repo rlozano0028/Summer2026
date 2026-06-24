@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sample Sensitive Fields (LOCAL TEST FORM)</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        max-width: 640px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        color: #1f2933;
+      }
+      .notice {
+        background: #fde8e8;
+        border: 1px solid #e02424;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+      }
+      .field {
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+      }
+      label {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+      input,
+      select,
+      textarea {
+        padding: 0.5rem;
+        border: 1px solid #cbd2d9;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+      .checkbox {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        border: none;
+        background: #9aa5b1;
+        color: white;
+        font-size: 1rem;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sample Sensitive Fields</h1>
+    <p class="notice">
+      This is a <strong>fake, local-only</strong> test form. Every field here is
+      <strong>sensitive or legal</strong> and must be left for manual review -
+      Phase 5 never autofills any of these. The form does not submit anywhere
+      and the submit button is disabled.
+    </p>
+
+    <form id="sensitive-fields" onsubmit="return false">
+      <!-- Work authorization. -->
+      <div class="field">
+        <label for="work_auth">Are you legally authorized to work in the U.S.?</label>
+        <select id="work_auth" name="work_authorization">
+          <option value="">Select...</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+
+      <!-- Sponsorship. -->
+      <div class="field">
+        <label for="sponsorship">Will you now or in the future require visa sponsorship?</label>
+        <select id="sponsorship" name="sponsorship">
+          <option value="">Select...</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+
+      <!-- Salary expectation. -->
+      <div class="field">
+        <label for="salary">Desired salary / compensation expectation</label>
+        <input type="text" id="salary" name="salary_expectation" placeholder="$" />
+      </div>
+
+      <!-- Veteran status. -->
+      <div class="field">
+        <label for="veteran">Protected veteran status</label>
+        <select id="veteran" name="veteran_status">
+          <option value="">Decline to self-identify</option>
+          <option value="yes">I am a protected veteran</option>
+          <option value="no">I am not a protected veteran</option>
+        </select>
+      </div>
+
+      <!-- Disability status. -->
+      <div class="field">
+        <label for="disability">Disability status</label>
+        <select id="disability" name="disability_status">
+          <option value="">Decline to self-identify</option>
+          <option value="yes">Yes, I have a disability</option>
+          <option value="no">No, I do not have a disability</option>
+        </select>
+      </div>
+
+      <!-- Race / ethnicity. -->
+      <div class="field">
+        <label for="race">Race / Ethnicity</label>
+        <input type="text" id="race" name="race_ethnicity" />
+      </div>
+
+      <!-- Gender. -->
+      <div class="field">
+        <label for="gender">Gender</label>
+        <select id="gender" name="gender">
+          <option value="">Decline to self-identify</option>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+          <option value="nonbinary">Non-binary</option>
+        </select>
+      </div>
+
+      <!-- Criminal history. -->
+      <div class="field">
+        <label for="criminal">Have you ever been convicted of a felony?</label>
+        <select id="criminal" name="criminal_history">
+          <option value="">Select...</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+
+      <!-- Date of birth. -->
+      <div class="field">
+        <label for="dob">Date of birth</label>
+        <input type="date" id="dob" name="date_of_birth" />
+      </div>
+
+      <!-- Government ID / SSN. -->
+      <div class="field">
+        <label for="ssn">Social Security Number (SSN)</label>
+        <input type="text" id="ssn" name="ssn" placeholder="XXX-XX-XXXX" />
+      </div>
+
+      <!-- Legal acknowledgment checkbox. -->
+      <div class="field checkbox">
+        <input type="checkbox" id="legal_ack" name="legal_acknowledgment" />
+        <label for="legal_ack">I certify that the information provided is accurate and I agree to the terms and conditions.</label>
+      </div>
+
+      <button type="submit" id="submit" disabled>Submit (disabled)</button>
+    </form>
+  </body>
+</html>

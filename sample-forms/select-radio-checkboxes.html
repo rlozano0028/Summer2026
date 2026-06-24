@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sample Select / Radio / Checkbox (LOCAL TEST FORM)</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        max-width: 640px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        color: #1f2933;
+      }
+      .notice {
+        background: #fff4e5;
+        border: 1px solid #f0b357;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+      }
+      .field {
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+      }
+      fieldset {
+        margin-bottom: 1rem;
+        border: 1px solid #cbd2d9;
+        border-radius: 6px;
+      }
+      legend {
+        font-weight: 600;
+        padding: 0 0.4rem;
+      }
+      label {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+      .option {
+        font-weight: 400;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+      }
+      select,
+      input {
+        padding: 0.5rem;
+        border: 1px solid #cbd2d9;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        border: none;
+        background: #9aa5b1;
+        color: white;
+        font-size: 1rem;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sample Select / Radio / Checkbox</h1>
+    <p class="notice">
+      This is a <strong>fake, local-only</strong> test form for selects, radios,
+      and checkboxes. It does not submit anywhere and the submit button is
+      disabled.
+    </p>
+
+    <form id="select-radio-checkboxes" onsubmit="return false">
+      <!-- Country select. -->
+      <div class="field">
+        <label for="country">Country</label>
+        <select id="country" name="country" autocomplete="country-name">
+          <option value="">Select...</option>
+          <option value="United States">United States</option>
+          <option value="United Kingdom">United Kingdom</option>
+          <option value="Canada">Canada</option>
+          <option value="Germany">Germany</option>
+        </select>
+      </div>
+
+      <!-- State select. -->
+      <div class="field">
+        <label for="state">State</label>
+        <select id="state" name="state" autocomplete="address-level1">
+          <option value="">Select...</option>
+          <option value="California">California</option>
+          <option value="New York">New York</option>
+          <option value="Washington">Washington</option>
+        </select>
+      </div>
+
+      <!-- Remote preference select (non-sensitive). -->
+      <div class="field">
+        <label for="remote_pref">Remote work preference</label>
+        <select id="remote_pref" name="remote_preference">
+          <option value="">Select...</option>
+          <option value="remote">Remote</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="onsite">On-site</option>
+        </select>
+      </div>
+
+      <!-- Non-sensitive checkbox. -->
+      <fieldset>
+        <legend>Newsletter</legend>
+        <label class="option">
+          <input type="checkbox" id="newsletter" name="newsletter" />
+          Subscribe to occasional product updates
+        </label>
+      </fieldset>
+
+      <!-- Sensitive checkbox (legal acknowledgment). -->
+      <fieldset>
+        <legend>Acknowledgment</legend>
+        <label class="option">
+          <input type="checkbox" id="legal_ack" name="legal_acknowledgment" />
+          I certify the information is accurate and I agree to the terms and conditions
+        </label>
+      </fieldset>
+
+      <!-- Radio group for remote preference (non-sensitive). -->
+      <fieldset>
+        <legend>Preferred schedule</legend>
+        <label class="option">
+          <input type="radio" name="schedule" value="full_time" /> Full-time
+        </label>
+        <label class="option">
+          <input type="radio" name="schedule" value="part_time" /> Part-time
+        </label>
+      </fieldset>
+
+      <!-- Radio group for sponsorship (sensitive). -->
+      <fieldset>
+        <legend>Will you require visa sponsorship?</legend>
+        <label class="option">
+          <input type="radio" name="sponsorship" value="yes" /> Yes
+        </label>
+        <label class="option">
+          <input type="radio" name="sponsorship" value="no" /> No
+        </label>
+      </fieldset>
+
+      <button type="submit" id="submit" disabled>Submit (disabled)</button>
+    </form>
+  </body>
+</html>

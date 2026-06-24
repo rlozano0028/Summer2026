@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sample Edge-Case Labels (LOCAL TEST FORM)</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        max-width: 640px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        color: #1f2933;
+      }
+      .notice {
+        background: #fff4e5;
+        border: 1px solid #f0b357;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+      }
+      .field {
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+      }
+      label {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+      input,
+      textarea {
+        padding: 0.5rem;
+        border: 1px solid #cbd2d9;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+      .hint {
+        font-size: 0.85rem;
+        color: #616e7c;
+      }
+      button {
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        border: none;
+        background: #9aa5b1;
+        color: white;
+        font-size: 1rem;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sample Edge-Case Labels</h1>
+    <p class="notice">
+      This is a <strong>fake, local-only</strong> test form for the Phase 5
+      field-mapping engine. It exercises tricky label associations. It does not
+      submit anywhere and the submit button is disabled.
+    </p>
+
+    <form id="edge-case-labels" onsubmit="return false">
+      <!-- 1. Label wrapping the input (no for=). -->
+      <div class="field">
+        <label>
+          First name
+          <input type="text" name="first_name" placeholder="Ada" />
+        </label>
+      </div>
+
+      <!-- 2. label for= input association. -->
+      <div class="field">
+        <label for="last-name-input">Last name</label>
+        <input type="text" id="last-name-input" name="last_name" />
+      </div>
+
+      <!-- 3. aria-label only (no visible label). -->
+      <div class="field">
+        <input type="email" name="contact_email" aria-label="Email address" />
+      </div>
+
+      <!-- 4. placeholder only. -->
+      <div class="field">
+        <input type="tel" name="contact" placeholder="Phone number" />
+      </div>
+
+      <!-- 5. camelCase name. -->
+      <div class="field">
+        <label for="linkedInUrl">Profile</label>
+        <input type="url" id="linkedInUrl" name="linkedInUrl" />
+      </div>
+
+      <!-- 6. snake_case name with no obvious label text. -->
+      <div class="field">
+        <label for="github_url">Code profile</label>
+        <input type="url" id="github_url" name="github_url" />
+      </div>
+
+      <!-- 7. hyphenated id. -->
+      <div class="field">
+        <label for="home-city">City</label>
+        <input type="text" id="home-city" name="home-city" />
+      </div>
+
+      <!-- 8. nearby text without an explicit label. -->
+      <div class="field">
+        <span class="hint">Country</span>
+        <input type="text" name="loc_country" />
+      </div>
+
+      <!-- 9. multiple similar fields (programming languages vs frameworks). -->
+      <div class="field">
+        <label for="prog_langs">Programming languages</label>
+        <input type="text" id="prog_langs" name="programming_languages" />
+      </div>
+      <div class="field">
+        <label for="fw">Frameworks &amp; libraries</label>
+        <input type="text" id="fw" name="frameworks" />
+      </div>
+
+      <!-- 10. disabled field. -->
+      <div class="field">
+        <label for="referral">Referral code (disabled)</label>
+        <input type="text" id="referral" name="referral" disabled />
+      </div>
+
+      <!-- 11. readonly field. -->
+      <div class="field">
+        <label for="locale">Locale (readonly)</label>
+        <input type="text" id="locale" name="locale" value="en-US" readonly />
+      </div>
+
+      <!-- 12. hidden field. -->
+      <input type="hidden" id="csrf" name="csrf_token" value="abc123" />
+
+      <!-- 13. submit button (disabled). -->
+      <button type="submit" id="submit" disabled>Submit (disabled)</button>
+    </form>
+  </body>
+</html>

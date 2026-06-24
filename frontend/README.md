@@ -55,3 +55,37 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 - [ ] Invalid JSON in education/experience/projects shows an error and does not
       save.
 - [ ] Sensitive fields (work authorization, salary) default to Unknown/blank.
+
+## Phase 5: mapping review UI
+
+The automation panel ("Field-mapping review") works against local sample forms
+only and never submits.
+
+### Test the mapping review UI
+
+- [ ] Pick a sample form and click **Analyze form**.
+- [ ] Decisions are grouped into **Will fill / Suggestions / Needs manual review
+      / Skipped** with counts.
+- [ ] Each row shows the category, action, confidence, reason, sensitive/missing
+      flags, and a redacted value preview.
+- [ ] Click **Show evidence** to expand the evidence list for a field.
+- [ ] Analyze `sensitive-fields`: every field is manual review, fill count is 0,
+      and a sensitive warning banner appears.
+
+### Save a local mapping override
+
+- [ ] In **Add a local mapping override**, select a detected field, pick a safe
+      category and an action (`suggest` / `manual_review` / `skip` / `fill`), and
+      click **Save override**.
+- [ ] The plan re-analyzes with the override applied.
+- [ ] Trying to force a sensitive field to `fill` is downgraded to manual review
+      with a warning.
+
+### Inspect fill / suggest / manual_review / skip decisions
+
+- [ ] Use the grouped view and per-field reason/evidence to confirm why each
+      field was filled, suggested, skipped, or flagged for manual review.
+
+> Note: the frontend has no automated test framework configured, so these are
+> manual checks. If a test runner is added later (e.g. Vitest +
+> Testing Library), start with a `FieldMappingReview` rendering test.
