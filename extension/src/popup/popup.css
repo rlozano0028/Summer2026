@@ -1,0 +1,291 @@
+:root {
+  --fill: #1a7f37;
+  --suggest: #9a6700;
+  --manual: #0969da;
+  --skip: #6e7781;
+  --border: #d0d7de;
+  --muted: #57606a;
+  --bg-subtle: #f6f8fa;
+  --danger: #cf222e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 420px;
+  max-height: 580px;
+  overflow-y: auto;
+  font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1f2328;
+  background: #fff;
+}
+
+.popup {
+  padding: 12px 14px 16px;
+}
+
+h1 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+
+.tagline {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+section {
+  margin-bottom: 12px;
+}
+
+h2 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.status {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-subtle);
+}
+
+.status-line {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.status-line + .status-line {
+  margin-top: 4px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--skip);
+  flex: 0 0 auto;
+}
+
+.dot.ok {
+  background: var(--fill);
+}
+
+.dot.warn {
+  background: var(--suggest);
+}
+
+.dot.bad {
+  background: var(--danger);
+}
+
+.page-url {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.notice {
+  margin: 0 0 8px;
+  padding: 7px 9px;
+  border-left: 3px solid var(--manual);
+  border-radius: 3px;
+  background: #ddf4ff;
+  font-size: 11px;
+}
+
+.notice.warn {
+  border-left-color: var(--suggest);
+  background: #fff8c5;
+}
+
+.notice.bad {
+  border-left-color: var(--danger);
+  background: #ffebe9;
+}
+
+.notice ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+button {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #f6f8fa;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #eaeef2;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary {
+  border-color: var(--fill);
+  background: var(--fill);
+  color: #fff;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #166b2e;
+}
+
+button.wide {
+  grid-column: 1 / -1;
+}
+
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.count {
+  flex: 1 1 auto;
+  min-width: 62px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.count .value {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.count .label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.count.fill .value {
+  color: var(--fill);
+}
+
+.count.suggest .value {
+  color: var(--suggest);
+}
+
+.count.manual_review .value {
+  color: var(--manual);
+}
+
+.count.skip .value {
+  color: var(--skip);
+}
+
+.review {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.row {
+  padding: 7px 9px;
+  border-top: 1px solid var(--border);
+}
+
+.row:first-child {
+  border-top: none;
+}
+
+.row-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.row-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge.fill {
+  background: var(--fill);
+}
+
+.badge.suggest {
+  background: var(--suggest);
+}
+
+.badge.manual_review {
+  background: var(--manual);
+}
+
+.badge.skip {
+  background: var(--skip);
+}
+
+.badge.sensitive {
+  background: var(--danger);
+}
+
+.row-meta {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.row-reason {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.preview {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.footnote {
+  margin: 12px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.footnote ul {
+  margin: 4px 0 0;
+  padding-left: 15px;
+}

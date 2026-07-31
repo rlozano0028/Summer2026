@@ -1,0 +1,24 @@
+{
+  "name": "autofill-assistant-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phase 6 Chrome extension prototype for the local job-application autofill assistant.",
+  "type": "module",
+  "scripts": {
+    "build": "vite build && node scripts/build-scripts.mjs",
+    "typecheck": "tsc --noEmit",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.1.6",
+    "vite": "^5.0.0"
+  }
+}

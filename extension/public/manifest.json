@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Autofill Assistant (Local Prototype)",
+  "version": "0.1.0",
+  "description": "Phase 6 prototype: reviews a local fill plan from your own FastAPI backend and fills only approved safe fields on local sample forms. Never submits.",
+  "action": {
+    "default_title": "Autofill Assistant (local only)",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background/serviceWorker.js"
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "http://127.0.0.1:8000/*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:5173/*",
+    "http://localhost:5173/*",
+    "http://127.0.0.1:8080/*",
+    "http://localhost:8080/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://127.0.0.1:8000/*",
+        "http://localhost:8000/*",
+        "http://127.0.0.1:5173/*",
+        "http://localhost:5173/*",
+        "http://127.0.0.1:8080/*",
+        "http://localhost:8080/*"
+      ],
+      "js": ["content/contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
