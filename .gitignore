@@ -24,9 +24,19 @@ env/
 .env.*
 *.local
 
-# --- Node / frontend build output ---
+# --- Node / build output ---
+node_modules/
 frontend/dist/
 dist/
+
+# --- Chrome extension build output (Phase 6; rebuild with `npm run build`) ---
+extension/dist/
+
+# --- Phase 7: anything captured from a real application page ---
+# The synthetic fixtures in test-fixtures/platform-pages/ ARE committed. This folder
+# is for a saved copy of a real page a developer was debugging against, which would
+# contain a live posting's markup and possibly their own answers. Never commit those.
+test-fixtures/real-pages/
 
 # --- OS / editor ---
 .DS_Store

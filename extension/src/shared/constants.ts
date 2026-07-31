@@ -49,6 +49,8 @@ export const MSG_APPLY_FILL_INSTRUCTIONS = "APPLY_FILL_INSTRUCTIONS";
 export const MSG_HIGHLIGHT_FIELDS = "HIGHLIGHT_FIELDS";
 export const MSG_CLEAR_HIGHLIGHTS = "CLEAR_HIGHLIGHTS";
 export const MSG_PING = "PING";
+/** Phase 7: ask the content script which platform the page looks like. */
+export const MSG_DETECT_PLATFORM = "DETECT_PLATFORM";
 
 /** chrome.storage.local key holding the backend URL setting. Never profile data. */
 export const STORAGE_KEY_BACKEND_URL = "backendUrl";
@@ -63,3 +65,36 @@ export const NEVER_FILL_INPUT_TYPES = new Set([
   "image",
   "hidden",
 ]);
+
+/**
+ * Phase 7: host suffixes for the supported applicant tracking systems.
+ *
+ * Mirrors the rules in backend/app/services/platform_allowlist.py. A leading dot
+ * means "this host or any subdomain". The backend re-derives the platform from the
+ * URL on every request, so a mismatch here fails safe: the popup may look wrong,
+ * but the analysis is still refused.
+ */
+export const PLATFORM_HOST_SUFFIXES: Record<string, readonly string[]> = {
+  greenhouse: [".greenhouse.io"],
+  lever: [".lever.co"],
+  ashby: [".ashbyhq.com"],
+  workday: [".myworkdayjobs.com", ".myworkdaysite.com"],
+  smartrecruiters: [".smartrecruiters.com"],
+};
+
+/** Display names for the platform ids above, plus the two special cases. */
+export const PLATFORM_LABELS: Record<string, string> = {
+  local: "Local sample form",
+  generic: "Company-hosted form",
+  greenhouse: "Greenhouse",
+  lever: "Lever",
+  ashby: "Ashby",
+  workday: "Workday",
+  smartrecruiters: "SmartRecruiters",
+  unsupported: "Unsupported page",
+};
+
+/** Backend paths used by Phase 7. Listed here so the client cannot typo them. */
+export const PATH_ANALYZE_REAL_PAGE = "/extension/analyze-real-page";
+export const PATH_SUPPORTED_PLATFORMS = "/platforms/supported";
+export const PATH_CHECK_URL = "/platforms/check-url";

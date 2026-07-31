@@ -1,10 +1,21 @@
 /**
- * Popup UI (Phase 6).
+ * Popup UI.
  *
  * The popup is the orchestrator: it talks to the local backend and to the content
- * script, and holds the analysis result in React state only. Nothing here is
- * written to chrome.storage except the backend URL setting, so closing the popup
- * discards every profile value the backend returned.
+ * script, and holds the analysis result in React state only. Nothing here is written
+ * to chrome.storage except the backend URL setting, so closing the popup discards
+ * every profile value the backend returned.
+ *
+ * Two flows share one screen, and which one runs is decided by the page URL:
+ *
+ * - Loopback pages take the Phase 6 path unchanged: `POST /extension/analyze-page`,
+ *   no confirmation, content script already injected declaratively.
+ * - Real pages take the Phase 7 path: the backend is asked whether the page is
+ *   supported, the user must tick a confirmation, the content script is injected on
+ *   demand under `activeTab`, and `POST /extension/analyze-real-page` is used.
+ *
+ * The gate is the URL rather than a setting, so there is no way to accidentally put
+ * a real page through the local path or vice versa.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -21,23 +32,31 @@ import {
   MSG_CLEAR_HIGHLIGHTS,
   MSG_DETECT_FIELDS,
   MSG_HIGHLIGHT_FIELDS,
+  MSG_PING,
+  PLATFORM_LABELS,
   STORAGE_KEY_BACKEND_URL,
 } from "../shared/constants";
 import {
   analyzeCurrentPage,
+  analyzeRealPage,
+  checkPageUrl,
   getExtensionHealth,
-  isAllowedPageUrl,
 } from "../shared/apiClient";
+import { describeTabAccessProblem } from "../shared/permissions";
+import type { PageSafetyDecision, PlatformDetection } from "../shared/platformTypes";
 import type {
   ApplyFillResult,
   ContentMessage,
   ContentResponse,
   DetectFieldsResult,
-  ExtensionAnalyzeResponse,
-  ExtensionDetectedField,
+  ExtensionFillInstruction,
   ExtensionHealthResponse,
-  FieldMapping,
+  FillPlan,
 } from "../shared/types";
+import { isLocalUrl } from "../shared/urlSafety";
+import { FillPlanReview } from "./components/FillPlanReview";
+import { PlatformStatus } from "./components/PlatformStatus";
+import { RealPageWarning } from "./components/RealPageWarning";
 
 const ACTION_ORDER = [
   ACTION_FILL,
@@ -45,6 +64,17 @@ const ACTION_ORDER = [
   ACTION_MANUAL_REVIEW,
   ACTION_SKIP,
 ] as const;
+
+/** The bundled content script, injected on demand for non-loopback pages. */
+const CONTENT_SCRIPT_FILE = "content/contentScript.js";
+
+/** Whatever produced the current plan, reduced to what the UI needs. */
+interface AnalysisState {
+  fill_plan: FillPlan;
+  instructions: ExtensionFillInstruction[];
+  warnings: string[];
+  unsupported_count: number;
+}
 
 /** Send a message to the active tab's content script with a readable failure. */
 async function sendToContentScript<T>(
@@ -56,10 +86,8 @@ async function sendToContentScript<T>(
     response = (await chrome.tabs.sendMessage(tabId, message)) as ContentResponse<T>;
   } catch (error) {
     throw new Error(
-      "Could not reach the page. Reload the tab (the content script is injected " +
-        `on page load) and try again. (${
-          error instanceof Error ? error.message : String(error)
-        })`,
+      "Could not reach the page. Reload the tab and try again. " +
+        `(${error instanceof Error ? error.message : String(error)})`,
     );
   }
   if (!response) {
@@ -71,55 +99,38 @@ async function sendToContentScript<T>(
   return response.data;
 }
 
-/** Best-effort label for a field, using the same signals the backend classifies on. */
-function fieldLabel(field: ExtensionDetectedField | undefined, fallback: string): string {
-  if (!field) return fallback;
-  return (
-    field.label_text ||
-    field.aria_label ||
-    field.name ||
-    field.placeholder ||
-    field.id_attribute ||
-    fallback
-  );
+/**
+ * Make sure the content script is present in `tabId`, injecting it if not.
+ *
+ * On loopback pages the manifest already injected it. On a real page nothing is
+ * present until this runs, and this only runs because the user clicked a button -
+ * that is what `activeTab` grants and the reason no broad host permission is needed.
+ * The content script guards against double registration, so injecting twice is safe.
+ */
+async function ensureContentScript(tabId: number): Promise<void> {
+  try {
+    await sendToContentScript<{ ready: boolean }>(tabId, { type: MSG_PING });
+    return;
+  } catch {
+    // Not injected yet, which is the normal case for a real page.
+  }
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: [CONTENT_SCRIPT_FILE],
+    });
+  } catch (error) {
+    throw new Error(
+      "Could not attach to this page. Focus the tab and try again; some pages " +
+        `(browser settings, extension pages, PDF viewers) cannot be read. (${
+          error instanceof Error ? error.message : String(error)
+        })`,
+    );
+  }
 }
 
 function StatusDot({ state }: { state: "ok" | "warn" | "bad" | "idle" }) {
   return <span className={`dot ${state === "idle" ? "" : state}`} />;
-}
-
-function MappingRow({
-  mapping,
-  label,
-}: {
-  mapping: FieldMapping;
-  label: string;
-}) {
-  return (
-    <div className="row">
-      <div className="row-head">
-        <span className="row-name" title={label}>
-          {label}
-        </span>
-        <span>
-          {mapping.sensitive && <span className="badge sensitive">Sensitive</span>}{" "}
-          <span className={`badge ${mapping.action}`}>
-            {ACTION_LABELS[mapping.action] ?? mapping.action}
-          </span>
-        </span>
-      </div>
-      <div className="row-meta">
-        {mapping.category} &middot; confidence {(mapping.confidence ?? 0).toFixed(2)}
-        {mapping.value_preview && (
-          <>
-            {" "}
-            &middot; <span className="preview">{mapping.value_preview}</span>
-          </>
-        )}
-      </div>
-      {mapping.reason && <div className="row-reason">{mapping.reason}</div>}
-    </div>
-  );
 }
 
 export function Popup() {
@@ -128,14 +139,23 @@ export function Popup() {
   const [pageUrl, setPageUrl] = useState<string>("");
   const [health, setHealth] = useState<ExtensionHealthResponse | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
+  const [detection, setDetection] = useState<PlatformDetection | null>(null);
+  const [safety, setSafety] = useState<PageSafetyDecision | null>(null);
+  const [platformError, setPlatformError] = useState<string | null>(null);
+  const [checkingPlatform, setCheckingPlatform] = useState(true);
+  const [confirmedRealPage, setConfirmedRealPage] = useState(false);
   const [detected, setDetected] = useState<DetectFieldsResult | null>(null);
-  const [analysis, setAnalysis] = useState<ExtensionAnalyzeResponse | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisState | null>(null);
   const [applyResult, setApplyResult] = useState<ApplyFillResult | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const pageAllowed = isAllowedPageUrl(pageUrl);
+  const isLocalPage = isLocalUrl(pageUrl);
+  const tabProblem = describeTabAccessProblem(pageUrl);
+  const needsConfirmation = safety?.requires_user_confirmation === true;
+  const pageAllowed = safety?.allowed === true && tabProblem === null;
+  const canAnalyze = pageAllowed && (!needsConfirmation || confirmedRealPage);
 
   useEffect(() => {
     void (async () => {
@@ -145,12 +165,25 @@ export function Popup() {
 
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       setTabId(tab?.id ?? null);
-      setPageUrl(tab?.url ?? "");
+      const currentUrl = tab?.url ?? "";
+      setPageUrl(currentUrl);
 
       try {
         setHealth(await getExtensionHealth(url));
       } catch (err) {
         setHealthError(err instanceof Error ? err.message : String(err));
+      }
+
+      // Ask the backend about the URL. This is a string check on its side: the page
+      // is never fetched, and asking does not touch the tab at all.
+      try {
+        const result = await checkPageUrl(currentUrl, url);
+        setDetection(result.detection);
+        setSafety(result.safety);
+      } catch (err) {
+        setPlatformError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setCheckingPlatform(false);
       }
     })();
   }, []);
@@ -176,38 +209,80 @@ export function Popup() {
   const handleDetect = () =>
     run("Detect fields", async () => {
       if (tabId === null) throw new Error("No active tab was found.");
+      if (!canAnalyze) {
+        throw new Error(
+          needsConfirmation && !confirmedRealPage
+            ? "Confirm that you want this real page analyzed first."
+            : (safety?.blocked_reason ?? "This page is not supported."),
+        );
+      }
+      await ensureContentScript(tabId);
       const result = await sendToContentScript<DetectFieldsResult>(tabId, {
         type: MSG_DETECT_FIELDS,
       });
       setDetected(result);
       setAnalysis(null);
       setApplyResult(null);
-      return `Detected ${result.fields.length} field(s).`;
+      const custom = result.fields.filter((field) => field.is_custom_control).length;
+      return (
+        `Detected ${result.fields.length} field(s)` +
+        (custom > 0 ? `, ${custom} of them unsupported custom controls.` : ".")
+      );
     });
 
   const handleAnalyze = () =>
     run("Analyze", async () => {
       if (!detected) throw new Error("Run 'Detect fields' first.");
-      const result = await analyzeCurrentPage(
-        {
-          page_url: detected.page_url,
-          page_title: detected.page_title,
-          // Reuse the sample form's file name so Phase 5 mapping overrides match.
-          form_name: new URL(detected.page_url).pathname.split("/").pop() ?? null,
-          fields: detected.fields,
-        },
-        backendUrl,
-      );
-      setAnalysis(result);
+      if (!canAnalyze) throw new Error("This page is not approved for analysis.");
+
+      if (isLocalPage) {
+        // Phase 6 path, byte for byte: same endpoint, same payload, same form-name
+        // trick so local mapping overrides keep applying.
+        const result = await analyzeCurrentPage(
+          {
+            page_url: detected.page_url,
+            page_title: detected.page_title,
+            form_name: new URL(detected.page_url).pathname.split("/").pop() ?? null,
+            fields: detected.fields,
+          },
+          backendUrl,
+        );
+        setAnalysis({
+          fill_plan: result.fill_plan,
+          instructions: result.instructions,
+          warnings: result.warnings,
+          unsupported_count: detected.fields.filter((f) => f.is_custom_control).length,
+        });
+      } else {
+        const result = await analyzeRealPage(
+          {
+            page_url: detected.page_url,
+            page_title: detected.page_title,
+            platform_id: detected.platform_id ?? null,
+            platform_confidence: detected.platform_confidence ?? null,
+            user_confirmed_real_page: confirmedRealPage,
+            fields: detected.fields,
+          },
+          backendUrl,
+        );
+        setAnalysis({
+          fill_plan: result.fill_plan,
+          instructions: result.instructions,
+          warnings: result.warnings,
+          unsupported_count: result.unsupported_count,
+        });
+        setSafety(result.safety);
+        if (result.platform) setDetection(result.platform);
+      }
       setApplyResult(null);
-      const plan = result.fill_plan;
-      return `Plan ready: ${plan.fill_count} fill, ${plan.suggest_count} suggest, ${plan.manual_review_count} manual review, ${plan.skip_count} skip.`;
+      return "Plan ready. Review each decision below before applying anything.";
     });
 
   const handleHighlight = () =>
     run("Highlight", async () => {
       if (tabId === null) throw new Error("No active tab was found.");
       if (!analysis) throw new Error("Analyze the page first.");
+      await ensureContentScript(tabId);
       const { marked } = await sendToContentScript<{ marked: number }>(tabId, {
         type: MSG_HIGHLIGHT_FIELDS,
         mappings: analysis.fill_plan.mappings,
@@ -219,54 +294,59 @@ export function Popup() {
     run("Apply safe fills", async () => {
       if (tabId === null) throw new Error("No active tab was found.");
       if (!analysis) throw new Error("Analyze the page first.");
+      if (!canAnalyze) throw new Error("This page is not approved for filling.");
+      await ensureContentScript(tabId);
       const result = await sendToContentScript<ApplyFillResult>(tabId, {
         type: MSG_APPLY_FILL_INSTRUCTIONS,
         instructions: analysis.instructions,
       });
       setApplyResult(result);
-      return `Filled ${result.filled}, skipped ${result.skipped}, failed ${result.failed}. Nothing was submitted.`;
+      return (
+        `Filled ${result.filled}, skipped ${result.skipped}, failed ${result.failed}. ` +
+        "Nothing was submitted - check the whole form yourself."
+      );
     });
 
   const handleClear = () =>
     run("Clear highlights", async () => {
       if (tabId === null) throw new Error("No active tab was found.");
+      await ensureContentScript(tabId);
       const { cleared } = await sendToContentScript<{ cleared: number }>(tabId, {
         type: MSG_CLEAR_HIGHLIGHTS,
       });
       return `Cleared highlights on ${cleared} field(s).`;
     });
 
-  const fieldsById = useMemo(() => {
-    const map = new Map<string, ExtensionDetectedField>();
-    for (const field of detected?.fields ?? []) {
-      map.set(field.field_id, field);
-    }
-    return map;
-  }, [detected]);
-
-  const groupedMappings = useMemo(() => {
-    const groups = new Map<string, FieldMapping[]>(
-      ACTION_ORDER.map((action) => [action, [] as FieldMapping[]]),
-    );
-    for (const mapping of analysis?.fill_plan.mappings ?? []) {
-      (groups.get(mapping.action) ?? groups.get(ACTION_MANUAL_REVIEW)!).push(mapping);
-    }
-    return groups;
-  }, [analysis]);
-
   const plan = analysis?.fill_plan;
-  const planWarnings = [
+  const counts = useMemo(
+    () => ({
+      detected: detected?.fields.length ?? 0,
+      [ACTION_FILL]: plan?.fill_count ?? 0,
+      [ACTION_SUGGEST]: plan?.suggest_count ?? 0,
+      [ACTION_MANUAL_REVIEW]: plan?.manual_review_count ?? 0,
+      [ACTION_SKIP]: plan?.skip_count ?? 0,
+      unsupported: analysis?.unsupported_count ?? 0,
+    }),
+    [detected, plan, analysis],
+  );
+
+  const allWarnings = [
     ...(analysis?.warnings ?? []),
     ...(plan?.warnings ?? []),
     ...(detected?.warnings ?? []),
     ...(applyResult?.warnings ?? []),
-  ];
+  ].filter((warning, index, list) => list.indexOf(warning) === index);
+
+  const platformLabel =
+    PLATFORM_LABELS[safety?.platform_id ?? detection?.platform_id ?? ""] ??
+    detection?.display_name ??
+    "this";
 
   return (
     <div className="popup">
       <h1>Autofill Assistant</h1>
       <p className="tagline">
-        Phase 6 prototype - local sample forms only. Nothing is ever submitted.
+        You review, you approve, you submit. This extension never submits a form.
       </p>
 
       <section>
@@ -299,34 +379,46 @@ export function Popup() {
         </div>
       </section>
 
-      <section>
-        <h2>Current page</h2>
-        <div className="status">
-          <div className="status-line">
-            <StatusDot state={pageAllowed ? "ok" : "warn"} />
-            <p className="page-url">{pageUrl || "unknown"}</p>
-          </div>
+      <PlatformStatus
+        pageUrl={pageUrl}
+        detection={detection}
+        safety={safety}
+        checking={checkingPlatform}
+        error={platformError}
+      />
+
+      {tabProblem && <div className="notice bad">{tabProblem}</div>}
+
+      {!checkingPlatform && safety && !safety.allowed && !tabProblem && (
+        <div className="notice warn">
+          This page is not supported. Supported platforms are Greenhouse, Lever, Ashby,
+          Workday, and SmartRecruiters, plus company domains you approved in the
+          backend and these local pages:
+          <ul>
+            {ALLOWED_PAGE_ORIGINS.map((origin) => (
+              <li key={origin}>{origin}</li>
+            ))}
+          </ul>
         </div>
-        {!pageAllowed && (
-          <div className="notice warn" style={{ marginTop: 8 }}>
-            This page is not supported in Phase 6. The extension only works on local
-            development pages:
-            <ul>
-              {ALLOWED_PAGE_ORIGINS.map((origin) => (
-                <li key={origin}>{origin}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
+      )}
+
+      {needsConfirmation && pageAllowed && (
+        <RealPageWarning
+          platformLabel={platformLabel}
+          warnings={safety?.warnings ?? []}
+          confirmed={confirmedRealPage}
+          onConfirmedChange={setConfirmedRealPage}
+          disabled={busy}
+        />
+      )}
 
       <section>
         <h2>Actions</h2>
         <div className="actions">
-          <button onClick={handleDetect} disabled={busy || !pageAllowed}>
+          <button onClick={handleDetect} disabled={busy || !canAnalyze}>
             Detect fields
           </button>
-          <button onClick={handleAnalyze} disabled={busy || !detected}>
+          <button onClick={handleAnalyze} disabled={busy || !detected || !canAnalyze}>
             Analyze with local profile
           </button>
           <button onClick={handleHighlight} disabled={busy || !analysis}>
@@ -338,7 +430,7 @@ export function Popup() {
           <button
             className="primary wide"
             onClick={handleApply}
-            disabled={busy || !analysis || (plan?.fill_count ?? 0) === 0}
+            disabled={busy || !analysis || !canAnalyze || (plan?.fill_count ?? 0) === 0}
           >
             Apply safe fills{plan ? ` (${plan.fill_count})` : ""}
           </button>
@@ -352,32 +444,28 @@ export function Popup() {
         <h2>Counts</h2>
         <div className="counts">
           <div className="count">
-            <span className="value">{detected?.fields.length ?? 0}</span>
+            <span className="value">{counts.detected}</span>
             <span className="label">Detected</span>
           </div>
           {ACTION_ORDER.map((action) => (
             <div className={`count ${action}`} key={action}>
-              <span className="value">
-                {action === ACTION_FILL
-                  ? (plan?.fill_count ?? 0)
-                  : action === ACTION_SUGGEST
-                    ? (plan?.suggest_count ?? 0)
-                    : action === ACTION_MANUAL_REVIEW
-                      ? (plan?.manual_review_count ?? 0)
-                      : (plan?.skip_count ?? 0)}
-              </span>
+              <span className="value">{counts[action]}</span>
               <span className="label">{ACTION_LABELS[action]}</span>
             </div>
           ))}
+          <div className="count unsupported">
+            <span className="value">{counts.unsupported}</span>
+            <span className="label">Unsupported</span>
+          </div>
         </div>
       </section>
 
-      {planWarnings.length > 0 && (
+      {allWarnings.length > 0 && (
         <section>
           <h2>Warnings</h2>
           <div className="notice warn">
             <ul>
-              {planWarnings.map((warning, index) => (
+              {allWarnings.map((warning, index) => (
                 <li key={`${index}-${warning}`}>{warning}</li>
               ))}
             </ul>
@@ -385,30 +473,15 @@ export function Popup() {
         </section>
       )}
 
-      {plan && (
-        <section>
-          <h2>Fill plan review</h2>
-          <div className="review">
-            {ACTION_ORDER.flatMap((action) =>
-              (groupedMappings.get(action) ?? []).map((mapping) => (
-                <MappingRow
-                  key={mapping.field_id}
-                  mapping={mapping}
-                  label={fieldLabel(fieldsById.get(mapping.field_id), mapping.field_id)}
-                />
-              )),
-            )}
-          </div>
-        </section>
-      )}
+      {plan && <FillPlanReview plan={plan} fields={detected?.fields ?? []} />}
 
       <div className="footnote">
-        <strong>What this prototype will not do:</strong>
+        <strong>What this extension will not do:</strong>
         <ul>
-          <li>Submit a form or click any button.</li>
+          <li>Submit a form, or click Apply, Next, or any other button.</li>
           <li>Autofill sensitive or legal questions - answer those yourself.</li>
           <li>Fill passwords or attach files.</li>
-          <li>Work on real job sites; only local sample forms are supported.</li>
+          <li>Run on a page you did not open and activate.</li>
         </ul>
         Always read the whole form yourself before submitting it.
       </div>

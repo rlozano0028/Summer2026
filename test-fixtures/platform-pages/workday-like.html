@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workday-like Application (SYNTHETIC LOCAL FIXTURE)</title>
+    <link rel="stylesheet" href="fixture.css" />
+  </head>
+  <body>
+    <h1>Workday-like Application</h1>
+    <p class="notice">
+      <strong>Synthetic local fixture.</strong> Imitates the <em>shape</em> of a
+      Workday form: <code>data-automation-id</code> attributes everywhere, several
+      custom controls instead of native inputs, and a multi-step wizard footer.
+      Not copied from any real site, submits nowhere, and both footer buttons are
+      disabled.
+    </p>
+
+    <div data-automation-id="applyFlowPage">
+      <form data-automation-id="applicationForm" onsubmit="return false">
+        <fieldset>
+          <legend>My Information</legend>
+
+          <div class="field">
+            <label for="legalNameSection_firstName">First Name<span class="req">*</span></label>
+            <input
+              type="text"
+              id="legalNameSection_firstName"
+              name="legalNameSection_firstName"
+              data-automation-id="legalNameSection_firstName"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="legalNameSection_lastName">Last Name<span class="req">*</span></label>
+            <input
+              type="text"
+              id="legalNameSection_lastName"
+              name="legalNameSection_lastName"
+              data-automation-id="legalNameSection_lastName"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="email">Email Address<span class="req">*</span></label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              data-automation-id="email"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="phone-number">Phone Number</label>
+            <input
+              type="tel"
+              id="phone-number"
+              name="phone-number"
+              data-automation-id="phone-number"
+            />
+            <span class="error" data-automation-id="errorMessage">Enter a valid phone number.</span>
+          </div>
+
+          <div class="field">
+            <label for="addressSection_city">City</label>
+            <input
+              type="text"
+              id="addressSection_city"
+              name="addressSection_city"
+              data-automation-id="addressSection_city"
+            />
+          </div>
+
+          <!-- Custom control: Workday renders country/state as a button-driven
+               listbox. The extension must never try to set these. -->
+          <div class="field">
+            <span id="country_label">Country</span>
+            <div
+              id="countryDropdown"
+              class="custom-control"
+              data-automation-id="countryDropdown"
+              role="combobox"
+              aria-expanded="false"
+              aria-labelledby="country_label"
+              tabindex="0"
+            >
+              Select One
+            </div>
+          </div>
+
+          <div class="field">
+            <span id="state_label">State</span>
+            <div
+              id="addressSection_countryRegion"
+              class="custom-control"
+              data-automation-id="addressSection_countryRegion"
+              role="listbox"
+              aria-labelledby="state_label"
+              tabindex="0"
+            >
+              Select One
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>My Experience</legend>
+
+          <div class="field">
+            <label for="jobTitle">Most Recent Job Title</label>
+            <input type="text" id="jobTitle" name="jobTitle" data-automation-id="jobTitle" />
+          </div>
+
+          <div class="field">
+            <label for="company">Company</label>
+            <input type="text" id="company" name="company" data-automation-id="company" />
+          </div>
+
+          <div class="field">
+            <label for="school">School or University</label>
+            <input type="text" id="school" name="school" data-automation-id="school" />
+          </div>
+
+          <div class="field">
+            <label for="degree">Degree</label>
+            <input type="text" id="degree" name="degree" data-automation-id="degree" />
+          </div>
+
+          <div class="field">
+            <label for="fieldOfStudy">Field of Study</label>
+            <input
+              type="text"
+              id="fieldOfStudy"
+              name="fieldOfStudy"
+              data-automation-id="fieldOfStudy"
+            />
+          </div>
+
+          <!-- Custom control: skills pill/multiselect widget. -->
+          <div class="field">
+            <span id="skills_label">Skills</span>
+            <div
+              id="skillsMultiselect"
+              class="custom-control"
+              data-automation-id="multiSelectContainer"
+              role="combobox"
+              aria-expanded="false"
+              aria-labelledby="skills_label"
+              tabindex="0"
+            >
+              Search for skills
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="linkedinQuestion">LinkedIn Profile URL</label>
+            <input
+              type="url"
+              id="linkedinQuestion"
+              name="linkedinQuestion"
+              data-automation-id="linkedinQuestion"
+            />
+          </div>
+
+          <div class="field">
+            <label for="websiteQuestion">Website / Portfolio</label>
+            <input
+              type="url"
+              id="websiteQuestion"
+              name="websiteQuestion"
+              data-automation-id="websiteQuestion"
+            />
+          </div>
+
+          <div class="field">
+            <label for="resumeUpload">Resume/CV<span class="req">*</span></label>
+            <input
+              type="file"
+              id="resumeUpload"
+              name="resumeUpload"
+              data-automation-id="file-upload-input-ref"
+              accept=".pdf,.doc,.docx"
+            />
+          </div>
+
+          <div class="field">
+            <label for="shortAnswer">Briefly describe your interest in this position</label>
+            <textarea
+              id="shortAnswer"
+              name="shortAnswer"
+              data-automation-id="shortAnswer"
+              rows="4"
+            ></textarea>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Application Questions</legend>
+
+          <div class="field">
+            <label for="sponsorshipQuestion">Do you require sponsorship to work in this country?</label>
+            <select
+              id="sponsorshipQuestion"
+              name="sponsorshipQuestion"
+              data-automation-id="sponsorshipQuestion"
+            >
+              <option value="">Select One</option>
+              <option>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="workAuthorization">Are you legally authorized to work here?</label>
+            <select
+              id="workAuthorization"
+              name="workAuthorization"
+              data-automation-id="workAuthorization"
+            >
+              <option value="">Select One</option>
+              <option>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="salaryExpectation">Salary Expectation</label>
+            <input
+              type="text"
+              id="salaryExpectation"
+              name="salaryExpectation"
+              data-automation-id="salaryExpectation"
+            />
+          </div>
+
+          <div class="field">
+            <label for="gender">Gender (voluntary)</label>
+            <select id="gender" name="gender" data-automation-id="gender">
+              <option value="">I do not wish to answer</option>
+              <option>Male</option>
+              <option>Female</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="veteranStatus">Veteran Status (voluntary)</label>
+            <select
+              id="veteranStatus"
+              name="veteranStatus"
+              data-automation-id="veteranStatus"
+            >
+              <option value="">I do not wish to answer</option>
+              <option>I am a protected veteran</option>
+              <option>I am not a protected veteran</option>
+            </select>
+          </div>
+
+          <div class="field checkbox">
+            <input
+              type="checkbox"
+              id="termsAndConditions"
+              name="termsAndConditions"
+              data-automation-id="createAccountCheckbox"
+            />
+            <label for="termsAndConditions">I have read and accept the terms.</label>
+          </div>
+        </fieldset>
+
+        <div class="field" style="flex-direction: row; gap: 0.5rem">
+          <button type="button" data-automation-id="bottom-navigation-back-button" disabled>
+            Back (disabled)
+          </button>
+          <button type="submit" data-automation-id="bottom-navigation-next-button" disabled>
+            Save and Continue (disabled)
+          </button>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>

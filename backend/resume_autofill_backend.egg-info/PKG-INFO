@@ -82,15 +82,68 @@ uvicorn app.main:app --reload
 
 Then open the interactive docs at http://127.0.0.1:8000/docs.
 
-### CORS for the frontend
+### CORS for the frontend and the extension
 
-For Phase 3, the API enables CORS for the local Vite dev server origins only:
+The API enables CORS for local loopback origins only (configured in `app/main.py`):
 
-- `http://localhost:5173`
-- `http://127.0.0.1:5173`
+- `http://localhost:5173` / `http://127.0.0.1:5173` - Vite dev server (Phase 3)
+- `http://localhost:8000` / `http://127.0.0.1:8000` - this API, which also hosts
+  the sample forms (Phase 6)
+- `http://localhost:8080` / `http://127.0.0.1:8080` - any other local static server
 
-This is local-development only (configured in `app/main.py`). Do not broaden it
-for any real deployment.
+Phase 6 additionally allows Chrome extension origins via the regex
+`^chrome-extension://[a-z]{32}$`. A packed extension's origin is
+`chrome-extension://<32-char id>`, and that id is not known until the unpacked
+extension is loaded, so it cannot be pinned in advance. The regex matches
+extension origins only - no wildcard hosts.
+
+All of this is local-development only. Do not broaden it for any real deployment.
+
+### Sample form hosting (Phase 6)
+
+The repo's sample forms are mounted read-only at `/sample-forms`, because Chrome
+extensions are awkward to test on `file://` URLs:
+
+- <http://127.0.0.1:8000/sample-forms/basic-application.html>
+- <http://127.0.0.1:8000/sample-forms/engineering-application.html>
+- <http://127.0.0.1:8000/sample-forms/edge-case-labels.html>
+- <http://127.0.0.1:8000/sample-forms/sensitive-fields.html>
+- <http://127.0.0.1:8000/sample-forms/select-radio-checkboxes.html>
+
+The files are unchanged, and the Playwright prototype still loads them from disk.
+`SAMPLE_FORMS_DIR` overrides the directory.
+
+### Platform fixture hosting (Phase 7)
+
+The synthetic platform pages are mounted read-only at `/test-fixtures`, so the extension's
+platform adapters can be exercised on a loopback origin:
+
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/greenhouse-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/lever-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/ashby-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/workday-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/smartrecruiters-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/generic-company-like.html>
+
+These are hand-written imitations of each platform's markup patterns, not copies of any
+real page. Because they are served from loopback they count as `local` for safety
+purposes, while their markup still selects the matching adapter - which is how a platform
+adapter gets tested without a real site being involved.
+
+### Approving a company domain (Phase 7)
+
+Vendor platforms are built in. Company-hosted forms are not, and there is no API for
+adding one: a host must be listed in `PHASE7_APPROVED_DOMAINS` before the server starts.
+
+```powershell
+$env:PHASE7_APPROVED_DOMAINS = "careers.acme-corp.example, jobs.other-co.example"
+uvicorn app.main:app --reload
+```
+
+Comma or space separated; full URLs are accepted and reduced to their host. Approval is
+per host, so `acme-corp.example` does not cover `careers.acme-corp.example`. The restart
+requirement is deliberate - a domain should be approved at a terminal, not from a popup
+while looking at a job posting.
 
 ## Run the tests
 
@@ -190,27 +243,217 @@ python -m app.scripts.run_local_autofill_demo --form engineering --headful \
 
 ### Automation API endpoints
 
-- `GET /automation/sample-forms` - list known local forms (`basic`, `engineering`).
-- `POST /automation/analyze` `{"form_name": "basic"}` - return a `FillPlan` (no filling).
+- `GET /automation/sample-forms` - list known local forms (`basic`,
+  `engineering`, `edge-case-labels`, `sensitive-fields`,
+  `select-radio-checkboxes`).
+- `POST /automation/analyze` `{"form_name": "basic"}` - return an enriched
+  `FillPlan` (no filling), with overrides applied.
 - `POST /automation/dry-run` `{"form_name": "basic"}` - run a no-type pass, return an `AutofillResult`.
-- `POST /automation/run-sample` `{"form_name": "basic", "headless": true}` - fill the local form, return an `AutofillResult`.
+- `POST /automation/run-sample` `{"form_name": "basic", "headless": true, "dry_run": false}` - fill the local form, return an `AutofillResult`.
 
 No automation endpoint accepts an arbitrary or external URL.
 
 Redacted JSON reports are written under `backend/app/data/automation-reports/`
 (git-ignored). Override the location with `AUTOMATION_REPORTS_DIR`.
 
+## Field-mapping engine (Phase 5)
+
+Phase 5 makes mapping explainable and testable. Each detected field is enriched
+into a `FieldContext`, classified into a `FieldCategory` with evidence-based
+confidence, checked against the sensitive-field detector, resolved to a redacted
+profile value, and assigned an action (`fill` / `suggest` / `manual_review` /
+`skip`). See
+[`../docs/phase-5-field-mapping-engine.md`](../docs/phase-5-field-mapping-engine.md).
+
+Services: `field_context_builder.py`, `sensitive_field_detector.py`,
+`field_value_resolver.py`, `redaction.py`, `field_mapping_overrides.py`, and the
+refactored `field_mapper.py`.
+
+### Mapping override endpoints (local-only)
+
+- `GET /mapping-overrides` (optional `?form_name=basic`) - list saved overrides.
+- `POST /mapping-overrides` - create/update an override; sensitive force-fills
+  are downgraded to manual review with a warning.
+- `DELETE /mapping-overrides/{override_id}` - delete an override.
+- `POST /mapping-overrides/apply-to-plan` `{"form_name": "basic"}` - re-analyze a
+  form with overrides applied.
+
+Overrides are stored under `backend/app/data/mapping-overrides/` (git-ignored).
+Override the location with `MAPPING_OVERRIDES_DIR`. Fingerprints contain only
+non-private field metadata; no profile values are stored.
+
+## Chrome extension API (Phase 6)
+
+Phase 6 lets a local Chrome extension get a fill plan for the page it is on. The
+endpoints analyze **field metadata only**: no browser is opened, `page_url` is
+never fetched, and nothing from the page is stored. See
+[`../docs/phase-6-chrome-extension-integration.md`](../docs/phase-6-chrome-extension-integration.md)
+and [`../extension/README.md`](../extension/README.md).
+
+Services/models: `models/extension.py`, `services/extension_field_adapter.py`.
+Mapping decisions come from the unchanged Phase 5 `build_fill_plan()`.
+
+### Extension endpoints
+
+- `GET /extension/health` - backend reachability plus whether a saved profile
+  exists and whether it still needs review.
+- `POST /extension/analyze-page` - build a fill plan from detected field metadata.
+  Returns a redacted `fill_plan` for display and transient `instructions` that
+  carry a real value only for safe `action="fill"` fields.
+- `POST /extension/validate-page` - check whether a page URL is in scope.
+
+Only these loopback origins are accepted; anything else gets HTTP 400:
+
+```
+http://127.0.0.1:8000    http://localhost:8000
+http://127.0.0.1:5173    http://localhost:5173
+http://127.0.0.1:8080    http://localhost:8080
+```
+
+### Test the extension endpoints without Chrome
+
+```bash
+# Backend status and profile review state
+curl http://127.0.0.1:8000/extension/health
+
+# A real job site is rejected
+curl -X POST http://127.0.0.1:8000/extension/validate-page \
+  -H "Content-Type: application/json" \
+  -d '{"page_url": "https://boards.greenhouse.io/example/jobs/1"}'
+
+# A plan from two fields of metadata (requires a saved profile)
+curl -X POST http://127.0.0.1:8000/extension/analyze-page \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page_url": "http://127.0.0.1:8000/sample-forms/basic-application.html",
+    "page_title": "Basic Application",
+    "form_name": "basic-application.html",
+    "fields": [
+      {"field_id": "f1", "selector": "#first_name", "tag_name": "input",
+       "input_type": "text", "name": "first_name", "label_text": "First name"},
+      {"field_id": "f2", "selector": "#email", "tag_name": "input",
+       "input_type": "email", "name": "email", "label_text": "Email"}
+    ]
+  }'
+```
+
+`form_name` is normalized: a sample form's file name resolves to its short name
+(`basic-application.html` becomes `basic`), so a mapping override saved from the
+dashboard also applies when the extension analyzes the same form.
+
+The pytest suite covers these endpoints without Chrome, without a loaded
+extension, and without network access
+(`tests/test_extension_adapter.py`, `test_extension_routes.py`,
+`test_extension_safety.py`).
+
+## Real platform support (Phase 7)
+
+Phase 7 adds a second, stricter analysis path for real application pages the user opened
+themselves. `POST /extension/analyze-page` is unchanged and still local-only; the new
+endpoint is separate so the local flow cannot regress. See
+[`../docs/phase-7-real-application-platforms.md`](../docs/phase-7-real-application-platforms.md)
+and [`../docs/platform-support-matrix.md`](../docs/platform-support-matrix.md).
+
+Services/models: `models/platform.py`, `services/platform_allowlist.py` (which URLs are in
+scope), `services/platform_policy.py` (confirmation, downgrades, final value stripping).
+Mapping decisions still come from the unchanged Phase 5 `build_fill_plan()`.
+
+Nothing here fetches a URL, resolves DNS, opens a browser, or writes to disk. Every
+decision is made from the URL string plus local rules.
+
+### Platform endpoints
+
+- `GET /platforms/supported` - every known platform, its URL patterns, and the domains
+  currently approved via `PHASE7_APPROVED_DOMAINS`.
+- `POST /platforms/check-url` - the platform `detection` (advisory) and `safety` decision
+  (authoritative) for a URL. Returns 200 even when the page is blocked, since this is the
+  informational check the popup uses to decide what to display.
+- `POST /extension/analyze-real-page` - the real-page fill plan. Requires
+  `user_confirmed_real_page=true` for any non-loopback page, and returns HTTP 400 without
+  it. Response adds `platform`, `safety`, `warnings`, and `unsupported_count` to the
+  Phase 6 shape.
+
+Supported hosts, matched exact-host or proper-suffix (never substring) and `https` only:
+
+```
+.greenhouse.io          .lever.co             .ashbyhq.com
+.myworkdayjobs.com      .myworkdaysite.com    .smartrecruiters.com
+```
+
+Loopback origins are still accepted and still need no confirmation. Everything else is
+refused with a reason, including lookalikes such as `boards.greenhouse.io.evil.example`.
+
+The extension's `platform_id` and `platform_confidence` are advisory. The backend
+re-derives the platform from the URL, so a client cannot widen its own access by claiming
+to be on a supported platform.
+
+### Test the platform endpoints without Chrome
+
+```bash
+# What is supported right now, including approved company domains
+curl http://127.0.0.1:8000/platforms/supported
+
+# A supported vendor page: allowed, but confirmation required
+curl -X POST http://127.0.0.1:8000/platforms/check-url \
+  -H "Content-Type: application/json" \
+  -d '{"page_url": "https://boards.greenhouse.io/example/jobs/1"}'
+
+# A lookalike host: blocked, with a reason
+curl -X POST http://127.0.0.1:8000/platforms/check-url \
+  -H "Content-Type: application/json" \
+  -d '{"page_url": "https://boards.greenhouse.io.evil.example/jobs/1"}'
+
+# Analysis without confirmation is refused (HTTP 400)
+curl -X POST http://127.0.0.1:8000/extension/analyze-real-page \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page_url": "https://boards.greenhouse.io/example/jobs/1",
+    "user_confirmed_real_page": false,
+    "fields": []
+  }'
+```
+
+Covered by `tests/test_platform_allowlist.py`, `test_platform_policy.py`, and
+`test_extension_real_platform_routes.py`, which also assert that `check-url` makes no
+outbound request and that the Phase 6 endpoint's behaviour is unchanged.
+
 ### Troubleshooting
 
 - **"Playwright could not launch Chromium"** - run `python -m playwright install chromium`.
 - **"No saved profile found"** - upload and review/save a profile first (dashboard
   or `/resume` + `/profile`), then retry.
+- **Fields detected but not filled** - the value may be missing in the profile
+  (`missing_value`), the confidence may be below the fill threshold, or the field
+  may be a textarea/checkbox/radio/file (conservative by design). Check the
+  decision's `reason` and `evidence`.
+- **Confidence too low** - add a local mapping override to pin the category, or
+  improve the saved profile so the value resolves.
+- **Sensitive field not autofilled** - this is intentional and cannot be
+  overridden; sensitive/legal fields are always manual review.
+- **Override not applying** - overrides match on `form_name` + `field_fingerprint`.
+  Use the short form name (e.g. `basic`) and the fingerprint from the field's
+  mapping (`FieldMapping.field_fingerprint`).
 - **Browser opens and closes too fast** - use the CLI with `--headful --keep-open`
   to keep the window open until you press Enter.
-- **Fields not detected** - confirm the field is a real `input`/`textarea`/`select`
-  and is visible; hidden/disabled fields are intentionally skipped.
-- **"Unknown sample form"** - only `basic` and `engineering` are allowed; arbitrary
-  URLs are never accepted in Phase 4.
+- **"Unknown sample form"** - only the five known local forms are allowed;
+  arbitrary URLs are never accepted.
+- **Extension gets 400 "not a supported Phase 6 page"** - `/extension/analyze-page` is
+  local-only by design. Open the form via `http://127.0.0.1:8000/sample-forms/...`, or use
+  `/extension/analyze-real-page` for a supported real platform.
+- **Extension gets a CORS error** - restart uvicorn after pulling the Phase 6
+  changes; the `chrome-extension://` allowance lives in `app/main.py`.
+- **Real page refused with "requires explicit user confirmation"** - the request had
+  `user_confirmed_real_page=false`. This is enforced in the backend, so it cannot be
+  bypassed by calling the API directly.
+- **A company domain is still blocked after being added** - `PHASE7_APPROVED_DOMAINS` is
+  read at startup, so restart uvicorn. Check `GET /platforms/supported` to see what the
+  running server actually loaded, and confirm you listed the exact host (approval is per
+  host, not per parent domain).
+- **A supported platform is blocked over `http`** - real platforms require `https`. Only
+  loopback origins may be plain `http`.
+- **Everything on a real page comes back as manual review** - most likely the fields are
+  custom controls (`unsupported_count` will be non-zero), which is normal on Workday. It
+  can also mean no profile value resolved; check each decision's `reason`.
 
 ## Project layout
 
@@ -222,21 +465,36 @@ backend/
       candidate_profile.py        Phase 1 Pydantic schema
       resume.py                   ExtractedResumeText, ResumeParseResult
       automation.py               Phase 4 automation models
+      field_mapping.py            Phase 5 mapping models (FieldContext, etc.)
+      extension.py                Phase 6 extension request/response models
+      platform.py                 Phase 7 platform detection + safety models
     services/
       resume_text_extractor.py    PDF/DOCX/TXT -> text
       resume_profile_parser.py    text -> rough profile (+ AI hook stub)
       profile_storage.py          local profile JSON load/save
-      form_field_detector.py      Phase 4 Playwright field detection
-      field_mapper.py             Phase 4 deterministic mapping
-      playwright_autofill.py      Phase 4 autofill runner (never submits)
-      automation_report_storage.py  Phase 4 redacted report storage
-      sample_forms.py             Phase 4 approved local-form registry
+      form_field_detector.py      Playwright field detection
+      field_context_builder.py    Phase 5 raw field -> enriched FieldContext
+      sensitive_field_detector.py Phase 5 sensitive/legal detection
+      field_value_resolver.py     Phase 5 category -> redacted profile value
+      redaction.py                Phase 5 preview redaction helpers
+      field_mapper.py             Phase 5 explainable mapping engine
+      field_mapping_overrides.py  Phase 5 local override store
+      extension_field_adapter.py  Phase 6 extension fields -> Phase 5 engine
+      platform_allowlist.py       Phase 7 which URLs are in scope (no I/O)
+      platform_policy.py          Phase 7 confirmation, downgrades, value stripping
+      playwright_autofill.py      autofill runner (never submits)
+      automation_report_storage.py  redacted report storage
+      sample_forms.py             approved local-form registry
     api/routes/resume.py          /health, /resume/*
     api/routes/profile.py         /profile/*
     api/routes/automation.py      /automation/*
-    scripts/run_local_autofill_demo.py  Phase 4 CLI demo
+    api/routes/mapping_overrides.py  /mapping-overrides/*
+    api/routes/extension.py       /extension/*
+    api/routes/platform_support.py   /platforms/*
+    scripts/run_local_autofill_demo.py  CLI demo
     utils/file_validation.py      extension/empty checks
     data/automation-reports/      redacted reports (git-ignored)
+    data/mapping-overrides/       local overrides (git-ignored)
   tests/                          pytest suite (offline)
   pyproject.toml
 ```
@@ -244,5 +502,9 @@ backend/
 See the design docs in [`../docs/`](../docs/):
 [Phase 1](../docs/phase-1-profile-schema.md),
 [Phase 2](../docs/phase-2-resume-ingestion.md),
-[Phase 3](../docs/phase-3-local-dashboard.md), and
-[Phase 4](../docs/phase-4-browser-automation-prototype.md).
+[Phase 3](../docs/phase-3-local-dashboard.md),
+[Phase 4](../docs/phase-4-browser-automation-prototype.md),
+[Phase 5](../docs/phase-5-field-mapping-engine.md),
+[Phase 6](../docs/phase-6-chrome-extension-integration.md), and
+[Phase 7](../docs/phase-7-real-application-platforms.md) plus the
+[platform support matrix](../docs/platform-support-matrix.md).

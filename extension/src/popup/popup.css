@@ -7,6 +7,8 @@
   --muted: #57606a;
   --bg-subtle: #f6f8fa;
   --danger: #cf222e;
+  /* Phase 7: controls the extension refuses to touch, distinct from "skip". */
+  --unsupported: #8250df;
 }
 
 * {
@@ -120,6 +122,47 @@ h2 {
   padding-left: 16px;
 }
 
+.notice-lead {
+  margin: 0;
+}
+
+.platform-notes {
+  margin-top: 6px !important;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Evidence and refusal reasons in the platform status block. */
+.reason,
+.evidence {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.evidence {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+}
+
+/* The real-page confirmation. Given room to breathe because ticking it is the
+   most consequential thing the user does in this popup. */
+.confirm {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  padding: 8px 9px;
+  border: 1px solid var(--suggest);
+  border-radius: 6px;
+  background: #fffbe6;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.confirm input {
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+}
+
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -203,6 +246,10 @@ button.wide {
   color: var(--skip);
 }
 
+.count.unsupported .value {
+  color: var(--unsupported);
+}
+
 .review {
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -260,6 +307,10 @@ button.wide {
 
 .badge.sensitive {
   background: var(--danger);
+}
+
+.badge.unsupported {
+  background: var(--unsupported);
 }
 
 .row-meta {

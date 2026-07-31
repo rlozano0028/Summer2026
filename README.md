@@ -24,6 +24,18 @@ your machine.
   detection, redacted value resolution, and local user-controlled mapping
   overrides - still local sample forms only, still never submits. See
   [docs/phase-5-field-mapping-engine.md](docs/phase-5-field-mapping-engine.md).
+- **Phase 6** - A Chrome extension prototype that reads the form on the current
+  page, gets a plan from the local backend using the Phase 5 engine, shows it for
+  review, and fills only approved safe fields - local sample forms only, never
+  submits. See
+  [docs/phase-6-chrome-extension-integration.md](docs/phase-6-chrome-extension-integration.md).
+- **Phase 7** - Controlled support for real application pages: a backend URL
+  allow-list plus safety policy, per-platform metadata adapters for Greenhouse,
+  Lever, Ashby, Workday, and SmartRecruiters, and a required per-page
+  confirmation. Still user-activated only, still never submits, still never fills
+  sensitive fields. See
+  [docs/phase-7-real-application-platforms.md](docs/phase-7-real-application-platforms.md)
+  and [docs/platform-support-matrix.md](docs/platform-support-matrix.md).
 
 ## Run it locally
 
@@ -69,13 +81,66 @@ any of the five local sample forms (`basic`, `engineering`, `edge-case-labels`,
 `sensitive-fields`, `select-radio-checkboxes`) from the dashboard or CLI, review
 the grouped decisions with evidence, and pin per-field overrides locally.
 
-Run the checks:
+## Chrome extension (Phase 6)
+
+With the backend running, build the extension and load it into Chrome:
+
+```bash
+cd extension
+npm install
+npm run build
+```
+
+Then open `chrome://extensions`, enable **Developer mode**, click
+**Load unpacked**, and select `extension/dist`.
+
+The backend also serves the sample forms over http so the extension can work on
+them, for example
+<http://127.0.0.1:8000/sample-forms/basic-application.html>. Open one, click the
+extension icon, then use **Detect fields** → **Analyze with local profile** →
+**Highlight decisions** → **Apply safe fills**.
+
+The extension never submits a form, never clicks a button, and never fills
+sensitive/legal fields, passwords, or file uploads. Details and troubleshooting are
+in [extension/README.md](extension/README.md).
+
+## Real application pages (Phase 7)
+
+The same extension also works on a real application page you opened yourself, on
+Greenhouse, Lever, Ashby, Workday, or SmartRecruiters over `https`. Open the page,
+click the extension icon, read the warning, tick the confirmation, then use the
+same Detect → Analyze → Highlight → Apply flow. The confirmation is required on
+every page and resets whenever the popup closes.
+
+Company-hosted forms are opt-in per host via the backend environment variable
+`PHASE7_APPROVED_DOMAINS`, which takes effect on restart:
+
+```powershell
+$env:PHASE7_APPROVED_DOMAINS = "careers.acme-corp.example"
+uvicorn app.main:app --reload
+```
+
+To try the platform adapters without touching a real site, the backend serves six
+synthetic fixture pages, for example
+<http://127.0.0.1:8000/test-fixtures/platform-pages/workday-like.html>.
+
+Phase 7 needs **no new browser permission**: `activeTab` plus `scripting` covers
+one tab, only after you click, so nothing runs on a page you did not activate.
+Custom controls such as Workday's dropdowns are always routed to manual review
+rather than filled.
+
+## Run the checks
 
 ```bash
 # Backend tests (from backend/, venv active)
 pytest
 
 # Frontend build (from frontend/)
+npm run build
+
+# Extension typecheck, tests, build (from extension/)
+npm run typecheck
+npm test
 npm run build
 ```
 
@@ -84,3 +149,11 @@ npm run build
 - Uploaded resume files are never stored permanently.
 - Only the reviewed profile JSON is saved locally (git-ignored).
 - No cloud storage, no analytics, no third-party calls, no API keys required.
+- The Chrome extension sends only field metadata to the local backend - never page
+  values, page HTML, screenshots, or passwords - and stores no profile data in
+  Chrome. `chrome.storage.local` holds the backend URL and nothing else.
+- On real pages the backend evaluates the URL string against a local allow-list. It
+  never fetches the page, and it runs no browser.
+- There is no scraping, mass applying, navigation, login automation, captcha
+  handling, auto-submit, or generated answers anywhere in this project, and none is
+  planned.

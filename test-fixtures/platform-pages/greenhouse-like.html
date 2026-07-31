@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Greenhouse-like Application (SYNTHETIC LOCAL FIXTURE)</title>
+    <link rel="stylesheet" href="fixture.css" />
+  </head>
+  <body>
+    <h1>Greenhouse-like Application</h1>
+    <p class="notice">
+      <strong>Synthetic local fixture.</strong> Hand-written to imitate the
+      <em>shape</em> of a Greenhouse form (ids such as
+      <code>#application_form</code> and <code>job_application_answers_*</code>).
+      It is not copied from any real site, submits nowhere, and its submit button
+      is disabled.
+    </p>
+
+    <!-- onsubmit returns false as a second guard so nothing is ever submitted. -->
+    <form id="application_form" class="application--form" onsubmit="return false">
+      <fieldset>
+        <legend>Contact information</legend>
+
+        <div class="field">
+          <label for="first_name">First Name <span class="req">*</span></label>
+          <input type="text" id="first_name" name="job_application[first_name]" required />
+        </div>
+
+        <div class="field">
+          <label for="last_name">Last Name <span class="req">*</span></label>
+          <input type="text" id="last_name" name="job_application[last_name]" required />
+        </div>
+
+        <div class="field">
+          <label for="email">Email <span class="req">*</span></label>
+          <input type="email" id="email" name="job_application[email]" required />
+        </div>
+
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="job_application[phone]" />
+          <span class="help" id="phone_help">Include your country code.</span>
+        </div>
+
+        <div class="field">
+          <label for="location">Location (City)</label>
+          <input type="text" id="location" name="job_application[location]" />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Links</legend>
+
+        <div class="field">
+          <label for="job_application_answers_attributes_0_text_value">LinkedIn Profile</label>
+          <input
+            type="url"
+            id="job_application_answers_attributes_0_text_value"
+            name="job_application[answers_attributes][0][text_value]"
+          />
+        </div>
+
+        <div class="field">
+          <label for="job_application_answers_attributes_1_text_value">GitHub Profile</label>
+          <input
+            type="url"
+            id="job_application_answers_attributes_1_text_value"
+            name="job_application[answers_attributes][1][text_value]"
+          />
+        </div>
+
+        <div class="field">
+          <label for="job_application_answers_attributes_2_text_value">Portfolio / Website</label>
+          <input
+            type="url"
+            id="job_application_answers_attributes_2_text_value"
+            name="job_application[answers_attributes][2][text_value]"
+          />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Background</legend>
+
+        <div class="field">
+          <label for="skills">Skills</label>
+          <input type="text" id="skills" name="job_application[answers_attributes][3][text_value]" />
+        </div>
+
+        <div class="field">
+          <label for="school">School</label>
+          <input type="text" id="school" name="job_application[educations][0][school_name]" />
+        </div>
+
+        <div class="field">
+          <label for="degree">Degree</label>
+          <input type="text" id="degree" name="job_application[educations][0][degree]" />
+        </div>
+
+        <div class="field">
+          <label for="discipline">Major / Discipline</label>
+          <input type="text" id="discipline" name="job_application[educations][0][discipline]" />
+        </div>
+
+        <div class="field">
+          <label for="company">Current Company</label>
+          <input type="text" id="company" name="job_application[employments][0][company_name]" />
+        </div>
+
+        <div class="field">
+          <label for="title">Current Title</label>
+          <input type="text" id="title" name="job_application[employments][0][title]" />
+        </div>
+
+        <div class="field">
+          <label for="resume">Resume/CV <span class="req">*</span></label>
+          <input type="file" id="resume" name="job_application[resume]" accept=".pdf,.doc,.docx" />
+          <span class="help">Attach this yourself; the extension never uploads files.</span>
+        </div>
+
+        <div class="field">
+          <label for="cover_letter_text">Why do you want to work here?</label>
+          <textarea id="cover_letter_text" name="job_application[cover_letter_text]" rows="4"></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Additional questions</legend>
+
+        <div class="field">
+          <label for="sponsorship">Will you now or in the future require visa sponsorship?</label>
+          <select id="sponsorship" name="job_application[answers_attributes][4][boolean_value]">
+            <option value="">Please select</option>
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="work_authorization">Are you legally authorized to work in this country?</label>
+          <select id="work_authorization" name="job_application[answers_attributes][5][boolean_value]">
+            <option value="">Please select</option>
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="salary">Desired base salary</label>
+          <input type="text" id="salary" name="job_application[answers_attributes][6][text_value]" />
+        </div>
+
+        <div class="field">
+          <label for="gender">Gender (EEO, voluntary)</label>
+          <select id="gender" name="job_application[gender]">
+            <option value="">Decline to self identify</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="veteran_status">Veteran status (voluntary)</label>
+          <select id="veteran_status" name="job_application[veteran_status]">
+            <option value="">Decline to self identify</option>
+            <option value="yes">I identify as a protected veteran</option>
+            <option value="no">I am not a protected veteran</option>
+          </select>
+        </div>
+
+        <div class="field checkbox">
+          <input type="checkbox" id="legal_ack" name="job_application[legal_ack]" />
+          <label for="legal_ack">I certify that the information above is accurate.</label>
+        </div>
+      </fieldset>
+
+      <button type="submit" id="submit_app" disabled>Submit Application (disabled)</button>
+    </form>
+  </body>
+</html>

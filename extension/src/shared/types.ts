@@ -32,6 +32,14 @@ export interface ExtensionDetectedField {
   is_select: boolean;
   is_checkbox: boolean;
   is_radio: boolean;
+  /**
+   * Phase 7: true for controls the extension will not write to - ARIA comboboxes,
+   * contenteditable regions, framework-owned dropdowns. The backend routes these to
+   * manual review.
+   */
+  is_custom_control?: boolean;
+  /** Short, non-identifying explanation shown next to a custom control. */
+  unsupported_reason?: string | null;
 }
 
 export interface ExtensionAnalyzeRequest {
@@ -126,9 +134,19 @@ export interface DetectFieldsResult {
   page_title: string;
   fields: ExtensionDetectedField[];
   warnings: string[];
+  /** Phase 7: which adapter read the page, so the popup can name it. */
+  platform_id?: string;
+  platform_display_name?: string;
+  platform_confidence?: number;
 }
 
-/** Envelope for every popup -> content script message. */
+/**
+ * Envelope for every popup -> content script message.
+ *
+ * Phase 7 adds typed alternatives in messageTypes.ts. This loose shape is kept for
+ * the existing Phase 6 call sites and for the runtime handler, which has to accept
+ * whatever arrives over `chrome.runtime.onMessage`.
+ */
 export interface ContentMessage {
   type: string;
   instructions?: ExtensionFillInstruction[];

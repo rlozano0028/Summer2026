@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lever-like Application (SYNTHETIC LOCAL FIXTURE)</title>
+    <link rel="stylesheet" href="fixture.css" />
+  </head>
+  <body class="application-page">
+    <h1>Lever-like Application</h1>
+    <p class="notice">
+      <strong>Synthetic local fixture.</strong> Imitates the <em>shape</em> of a
+      Lever form (<code>data-qa</code> attributes, <code>urls[...]</code> and
+      <code>cards[...]</code> field names). Not copied from any real site, submits
+      nowhere, submit button disabled.
+    </p>
+
+    <form
+      class="application-form"
+      data-qa="application-form"
+      onsubmit="return false"
+    >
+      <fieldset>
+        <legend>Submit your application</legend>
+
+        <div class="field" data-qa="name">
+          <label for="name">Full name<span class="req">✱</span></label>
+          <input type="text" id="name" name="name" required />
+        </div>
+
+        <div class="field" data-qa="email">
+          <label for="email">Email<span class="req">✱</span></label>
+          <input type="email" id="email" name="email" required />
+        </div>
+
+        <div class="field" data-qa="phone">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" />
+        </div>
+
+        <div class="field" data-qa="location">
+          <label for="location">Current location</label>
+          <input type="text" id="location" name="location" />
+        </div>
+
+        <div class="field" data-qa="org">
+          <label for="org">Current company</label>
+          <input type="text" id="org" name="org" />
+        </div>
+
+        <div class="field">
+          <label for="current_title">Current title</label>
+          <input type="text" id="current_title" name="cards[title][field0]" />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Links</legend>
+
+        <div class="field">
+          <label for="urls_LinkedIn">LinkedIn URL</label>
+          <input type="url" id="urls_LinkedIn" name="urls[LinkedIn]" />
+        </div>
+
+        <div class="field">
+          <label for="urls_GitHub">GitHub URL</label>
+          <input type="url" id="urls_GitHub" name="urls[GitHub]" />
+        </div>
+
+        <div class="field">
+          <label for="urls_Portfolio">Portfolio URL</label>
+          <input type="url" id="urls_Portfolio" name="urls[Portfolio]" />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Additional information</legend>
+
+        <div class="field">
+          <label for="skills">Primary skills</label>
+          <input type="text" id="skills" name="cards[skills][field0]" />
+        </div>
+
+        <div class="field">
+          <label for="school">School</label>
+          <input type="text" id="school" name="cards[education][field0]" />
+        </div>
+
+        <div class="field">
+          <label for="degree">Degree</label>
+          <input type="text" id="degree" name="cards[education][field1]" />
+        </div>
+
+        <div class="field">
+          <label for="major">Field of study</label>
+          <input type="text" id="major" name="cards[education][field2]" />
+        </div>
+
+        <div class="field" data-qa="resume-upload-input">
+          <label for="resume">Resume/CV<span class="req">✱</span></label>
+          <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx,.txt" />
+        </div>
+
+        <div class="field">
+          <label for="comments">What interests you about this role?</label>
+          <textarea id="comments" name="comments" rows="4"></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Screening questions</legend>
+
+        <div class="field">
+          <label for="sponsorship">Do you now or will you in the future require sponsorship?</label>
+          <select id="sponsorship" name="cards[questions][field0]">
+            <option value="">Select one</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="salary">Expected compensation</label>
+          <input type="text" id="salary" name="cards[questions][field1]" />
+        </div>
+
+        <fieldset class="field">
+          <legend>Are you legally authorized to work in this country?</legend>
+          <div class="field radio-option">
+            <input type="radio" id="auth_yes" name="work_authorization" value="yes" />
+            <label for="auth_yes">Yes</label>
+          </div>
+          <div class="field radio-option">
+            <input type="radio" id="auth_no" name="work_authorization" value="no" />
+            <label for="auth_no">No</label>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="race">Race / ethnicity (voluntary)</label>
+          <select id="race" name="eeo[race]">
+            <option value="">I do not wish to answer</option>
+            <option>Option A</option>
+            <option>Option B</option>
+          </select>
+        </div>
+
+        <div class="field checkbox">
+          <input type="checkbox" id="consent" name="consent" />
+          <label for="consent">I consent to the processing of my application data.</label>
+        </div>
+      </fieldset>
+
+      <button type="submit" id="btn-submit" disabled>Submit application (disabled)</button>
+    </form>
+  </body>
+</html>

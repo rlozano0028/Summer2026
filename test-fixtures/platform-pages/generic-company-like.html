@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Generic Company Application (SYNTHETIC LOCAL FIXTURE)</title>
+    <link rel="stylesheet" href="fixture.css" />
+  </head>
+  <body>
+    <h1>Careers - Apply for Software Engineer</h1>
+    <p class="notice">
+      <strong>Synthetic local fixture.</strong> A plain hand-rolled company
+      application form with no ATS markers, used to exercise the generic adapter.
+      Submits nowhere, submit button disabled.
+    </p>
+
+    <form id="job-application" onsubmit="return false">
+      <fieldset>
+        <legend>About you</legend>
+
+        <div class="field">
+          <label for="fullname">Full name<span class="req">*</span></label>
+          <input type="text" id="fullname" name="fullname" autocomplete="name" required />
+        </div>
+
+        <div class="field">
+          <label for="email">Email address<span class="req">*</span></label>
+          <input type="email" id="email" name="email" autocomplete="email" required />
+        </div>
+
+        <div class="field">
+          <label for="telephone">Telephone</label>
+          <input type="tel" id="telephone" name="telephone" autocomplete="tel" />
+        </div>
+
+        <div class="field">
+          <label for="city">City</label>
+          <input type="text" id="city" name="city" autocomplete="address-level2" />
+        </div>
+
+        <div class="field">
+          <label for="state">State / region</label>
+          <input type="text" id="state" name="state" autocomplete="address-level1" />
+        </div>
+
+        <div class="field">
+          <label for="country">Country</label>
+          <input type="text" id="country" name="country" autocomplete="country-name" />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Online profiles</legend>
+
+        <div class="field">
+          <label for="linkedin">LinkedIn</label>
+          <input type="url" id="linkedin" name="linkedin" />
+        </div>
+
+        <div class="field">
+          <label for="github">GitHub</label>
+          <input type="url" id="github" name="github" />
+        </div>
+
+        <div class="field">
+          <label for="website">Personal website</label>
+          <input type="url" id="website" name="website" />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Qualifications</legend>
+
+        <div class="field">
+          <label for="skills">Technical skills</label>
+          <input type="text" id="skills" name="skills" />
+          <span class="help">Comma separated.</span>
+        </div>
+
+        <div class="field">
+          <label for="university">University</label>
+          <input type="text" id="university" name="university" />
+        </div>
+
+        <div class="field">
+          <label for="degree">Degree earned</label>
+          <input type="text" id="degree" name="degree" />
+        </div>
+
+        <div class="field">
+          <label for="major">Major</label>
+          <input type="text" id="major" name="major" />
+        </div>
+
+        <div class="field">
+          <label for="employer">Most recent employer</label>
+          <input type="text" id="employer" name="employer" />
+        </div>
+
+        <div class="field">
+          <label for="position">Most recent position</label>
+          <input type="text" id="position" name="position" />
+        </div>
+
+        <div class="field">
+          <label for="resume">Upload your resume<span class="req">*</span></label>
+          <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx,.txt" />
+        </div>
+
+        <div class="field">
+          <label for="why">Tell us why you are a good fit</label>
+          <textarea id="why" name="why" rows="4"></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Legal and voluntary questions</legend>
+
+        <div class="field">
+          <label for="sponsorship">Will you require sponsorship to work in this country?</label>
+          <select id="sponsorship" name="sponsorship">
+            <option value="">Please choose</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="work_auth">Are you legally authorized to work in this country?</label>
+          <select id="work_auth" name="work_auth">
+            <option value="">Please choose</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="salary">Desired salary</label>
+          <input type="text" id="salary" name="salary" />
+        </div>
+
+        <div class="field">
+          <label for="gender">Gender (voluntary)</label>
+          <select id="gender" name="gender">
+            <option value="">Prefer not to say</option>
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="disability">Disability status (voluntary)</label>
+          <select id="disability" name="disability">
+            <option value="">Prefer not to say</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </div>
+
+        <div class="field checkbox">
+          <input type="checkbox" id="certify" name="certify" />
+          <label for="certify">I certify that all statements are true and complete.</label>
+        </div>
+
+        <!-- A hidden input: detection must skip these entirely. -->
+        <input type="hidden" id="csrf_token" name="csrf_token" value="not-a-real-token" />
+      </fieldset>
+
+      <button type="submit" id="apply-now" disabled>Apply now (disabled)</button>
+    </form>
+  </body>
+</html>

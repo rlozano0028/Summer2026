@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SmartRecruiters-like Application (SYNTHETIC LOCAL FIXTURE)</title>
+    <link rel="stylesheet" href="fixture.css" />
+  </head>
+  <body>
+    <h1>SmartRecruiters-like Application</h1>
+    <p class="notice">
+      <strong>Synthetic local fixture.</strong> Imitates the <em>shape</em> of a
+      SmartRecruiters form (<code>data-test</code> attributes, an
+      <code>#st-application</code> wrapper, and one custom location picker). Not
+      copied from any real site, submits nowhere, submit button disabled.
+    </p>
+
+    <div id="st-application" data-test="application-page">
+      <form data-test="application-form" onsubmit="return false">
+        <fieldset>
+          <legend>Personal information</legend>
+
+          <div class="field">
+            <label for="firstName">First name<span class="req">*</span></label>
+            <input type="text" id="firstName" name="firstName" data-test="firstName" required />
+          </div>
+
+          <div class="field">
+            <label for="lastName">Last name<span class="req">*</span></label>
+            <input type="text" id="lastName" name="lastName" data-test="lastName" required />
+          </div>
+
+          <div class="field">
+            <label for="email">Email<span class="req">*</span></label>
+            <input type="email" id="email" name="email" data-test="email" required />
+          </div>
+
+          <div class="field">
+            <label for="phoneNumber">Phone number</label>
+            <input type="tel" id="phoneNumber" name="phoneNumber" data-test="phoneNumber" />
+          </div>
+
+          <!-- Custom control: SmartRecruiters uses an autocomplete location picker. -->
+          <div class="field">
+            <span id="location_label">Location</span>
+            <div
+              id="locationPicker"
+              class="custom-control"
+              data-test="location-autocomplete"
+              role="combobox"
+              aria-expanded="false"
+              aria-labelledby="location_label"
+              tabindex="0"
+            >
+              Start typing a city
+            </div>
+            <span class="help">Custom picker: fill this one yourself.</span>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Links</legend>
+
+          <div class="field">
+            <label for="linkedinProfile">LinkedIn profile</label>
+            <input type="url" id="linkedinProfile" name="linkedinProfile" data-test="web-linkedin" />
+          </div>
+
+          <div class="field">
+            <label for="githubProfile">GitHub profile</label>
+            <input type="url" id="githubProfile" name="githubProfile" data-test="web-github" />
+          </div>
+
+          <div class="field">
+            <label for="portfolio">Portfolio / other website</label>
+            <input type="url" id="portfolio" name="portfolio" data-test="web-other" />
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Education and experience</legend>
+
+          <div class="field">
+            <label for="skills">Skills</label>
+            <input type="text" id="skills" name="skills" data-test="skills" />
+          </div>
+
+          <div class="field">
+            <label for="institution">School / institution</label>
+            <input type="text" id="institution" name="institution" data-test="education-institution" />
+          </div>
+
+          <div class="field">
+            <label for="degreeName">Degree</label>
+            <input type="text" id="degreeName" name="degreeName" data-test="education-degree" />
+          </div>
+
+          <div class="field">
+            <label for="major">Major</label>
+            <input type="text" id="major" name="major" data-test="education-major" />
+          </div>
+
+          <div class="field">
+            <label for="employer">Most recent employer</label>
+            <input type="text" id="employer" name="employer" data-test="experience-company" />
+          </div>
+
+          <div class="field">
+            <label for="jobTitle">Most recent job title</label>
+            <input type="text" id="jobTitle" name="jobTitle" data-test="experience-title" />
+          </div>
+
+          <div class="field">
+            <label for="resumeFile">Resume<span class="req">*</span></label>
+            <input
+              type="file"
+              id="resumeFile"
+              name="resumeFile"
+              data-test="resume-upload"
+              accept=".pdf,.doc,.docx"
+            />
+          </div>
+
+          <div class="field">
+            <label for="motivation">Why do you want to join us?</label>
+            <textarea id="motivation" name="motivation" data-test="answer-text" rows="4"></textarea>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Screening</legend>
+
+          <div class="field">
+            <label for="sponsorship">Do you need visa sponsorship?</label>
+            <select id="sponsorship" name="sponsorship" data-test="answer-single-select">
+              <option value="">Choose an option</option>
+              <option>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="salaryExpectation">Salary expectation</label>
+            <input
+              type="text"
+              id="salaryExpectation"
+              name="salaryExpectation"
+              data-test="answer-salary"
+            />
+          </div>
+
+          <fieldset class="field">
+            <legend>Are you legally authorized to work in this country?</legend>
+            <div class="field radio-option">
+              <input type="radio" id="wa_yes" name="workAuthorization" value="yes" />
+              <label for="wa_yes">Yes</label>
+            </div>
+            <div class="field radio-option">
+              <input type="radio" id="wa_no" name="workAuthorization" value="no" />
+              <label for="wa_no">No</label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="ethnicity">Ethnicity (voluntary)</label>
+            <select id="ethnicity" name="ethnicity" data-test="eeo-ethnicity">
+              <option value="">Prefer not to disclose</option>
+              <option>Option A</option>
+              <option>Option B</option>
+            </select>
+          </div>
+
+          <div class="field checkbox">
+            <input type="checkbox" id="privacyConsent" name="privacyConsent" data-test="consent" />
+            <label for="privacyConsent">I agree to the privacy policy.</label>
+          </div>
+        </fieldset>
+
+        <button type="submit" data-test="submit-application" disabled>
+          Apply (disabled)
+        </button>
+      </form>
+    </div>
+  </body>
+</html>

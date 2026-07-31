@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Autofill Assistant (Local Prototype)",
   "version": "0.1.0",
-  "description": "Phase 6 prototype: reviews a local fill plan from your own FastAPI backend and fills only approved safe fields on local sample forms. Never submits.",
+  "description": "Reviews a fill plan from your own local FastAPI backend and fills only the safe fields you approve, on local sample forms and on supported application pages you open yourself. Never submits, never clicks Apply.",
   "action": {
     "default_title": "Autofill Assistant (local only)",
     "default_popup": "popup.html"

@@ -1,0 +1,114 @@
+/* Shared styling for the synthetic platform fixtures.
+ *
+ * Kept in one file so the fixture HTML stays readable as *form structure*, which
+ * is the only thing these pages exist to exercise.
+ */
+
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  color: #1f2933;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+.notice {
+  background: #fff4e5;
+  border: 1px solid #f0b357;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  line-height: 1.45;
+}
+
+fieldset {
+  border: 1px solid #cbd2d9;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+legend {
+  font-weight: 700;
+  padding: 0 0.35rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.field.checkbox,
+.field.radio-option {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.field.checkbox label,
+.field.radio-option label {
+  font-weight: 400;
+  margin-bottom: 0;
+}
+
+input,
+textarea,
+select {
+  padding: 0.5rem;
+  border: 1px solid #cbd2d9;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: auto;
+}
+
+.help {
+  font-size: 0.85rem;
+  color: #52606d;
+  margin-top: 0.25rem;
+}
+
+.error {
+  font-size: 0.85rem;
+  color: #ab1616;
+  margin-top: 0.25rem;
+}
+
+.req {
+  color: #ab1616;
+}
+
+/* Custom controls: these look like inputs but are divs, so the extension must
+ * refuse to write to them. */
+.custom-control {
+  padding: 0.5rem;
+  border: 1px dashed #9aa5b1;
+  border-radius: 6px;
+  background: #f5f7fa;
+  color: #52606d;
+  min-height: 1.25rem;
+}
+
+button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  background: #9aa5b1;
+  color: white;
+  font-size: 1rem;
+  cursor: not-allowed;
+}

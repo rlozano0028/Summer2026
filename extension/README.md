@@ -1,11 +1,17 @@
-# Autofill Assistant - Chrome extension (Phase 6 prototype)
+# Autofill Assistant - Chrome extension
 
 A Manifest V3 extension that asks the local FastAPI backend how to fill the form on
 the current page, shows you the plan, and fills only the fields you approve.
 
-**Local sample forms only. Nothing is ever submitted.** See
-[../docs/phase-6-chrome-extension-integration.md](../docs/phase-6-chrome-extension-integration.md)
-for the full design and privacy model.
+**Nothing is ever submitted, and no button is ever clicked.** Local sample forms work
+out of the box; real application pages work on supported platforms, only on a page you
+opened yourself, and only after you confirm.
+
+- Phase 6 design and privacy model:
+  [../docs/phase-6-chrome-extension-integration.md](../docs/phase-6-chrome-extension-integration.md)
+- Phase 7 real-platform support:
+  [../docs/phase-7-real-application-platforms.md](../docs/phase-7-real-application-platforms.md)
+- Per-platform behaviour: [../docs/platform-support-matrix.md](../docs/platform-support-matrix.md)
 
 ## Setup
 
@@ -34,7 +40,14 @@ Other scripts:
 | Command | Purpose |
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over `src/` |
+| `npm test` | vitest + jsdom specs for the safety-critical helpers |
+| `npm run test:watch` | the same specs in watch mode |
 | `npm run clean` | delete `dist/` |
+
+The tests use their own `vitest.config.ts` so the popup's `vite.config.ts` stays a pure
+build config. They cover the URL rules, platform detection, field detection, the
+filler's refusals, the highlighter, and the manifest's permissions - the places where a
+mistake would mean touching something on a real page that should not be touched.
 
 There is no watch mode. Chrome requires a manual extension reload after every
 build anyway, so a watcher would save little; also, `vite build` empties `dist/`
@@ -75,8 +88,10 @@ The backend URL is the only thing this extension stores (in
 
 ## Supported page URLs
 
-The manifest grants host permissions for these six origins only, and the backend
-enforces the same list:
+### Local pages
+
+These six origins are always in scope, need no confirmation, and are the ones the
+manifest grants host permissions for:
 
 ```
 http://127.0.0.1:8000    http://localhost:8000
@@ -92,17 +107,42 @@ The backend serves the repo's sample forms, so these work out of the box:
 - <http://127.0.0.1:8000/sample-forms/sensitive-fields.html>
 - <http://127.0.0.1:8000/sample-forms/select-radio-checkboxes.html>
 
+It also serves the six synthetic platform fixtures, which imitate the structure of each
+supported ATS without being copies of anything real:
+
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/greenhouse-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/lever-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/ashby-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/workday-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/smartrecruiters-like.html>
+- <http://127.0.0.1:8000/test-fixtures/platform-pages/generic-company-like.html>
+
 `file://` paths are not supported.
+
+### Real application pages
+
+Greenhouse (`.greenhouse.io`), Lever (`.lever.co`), Ashby (`.ashbyhq.com`), Workday
+(`.myworkdayjobs.com`, `.myworkdaysite.com`), and SmartRecruiters
+(`.smartrecruiters.com`), over `https` only. Company-hosted forms need an explicit
+opt-in via the backend's `PHASE7_APPROVED_DOMAINS` environment variable.
+
+No new permission is requested for any of this. `activeTab` plus `scripting` lets the
+popup inject the content script into the tab you are looking at **when you click**, so
+nothing runs on a page you did not activate. See
+[../docs/platform-support-matrix.md](../docs/platform-support-matrix.md).
 
 ## Using it
 
-1. Open a sample form, then click the extension icon.
-2. **Detect fields** - reads field metadata from the page (never values).
-3. **Analyze with local profile** - sends that metadata to the backend and gets a
+1. Open the form, then click the extension icon.
+2. On a real page: read the warning box and tick the confirmation. The box is unchecked
+   every time the popup opens, and the backend refuses the request without it.
+3. **Detect fields** - reads field metadata from the page (never values).
+4. **Analyze with local profile** - sends that metadata to the backend and gets a
    plan back.
-4. **Highlight decisions** - outlines and badges each field on the page.
-5. **Apply safe fills** - fills only the `fill` decisions.
-6. **Clear highlights** - removes the page decoration.
+5. **Highlight decisions** - outlines and badges each field on the page.
+6. **Apply safe fills** - fills only the `fill` decisions.
+7. **Clear highlights** - removes the page decoration.
+8. Read the whole form yourself, then submit it yourself.
 
 ## Troubleshooting
 
@@ -130,14 +170,41 @@ again.
 
 ### The popup says the page is not supported
 
-You are on an origin outside the six allow-listed ones - a `file://` path or a real
-website. Phase 6 is deliberately limited to local development pages.
+The page is neither a loopback origin nor a supported platform. Check the reason shown
+under the platform name: it will say whether the host was unrecognized, whether the page
+was served over `http` instead of `https`, or whether a company domain needs approval.
+
+For a company-hosted form, add the host to `PHASE7_APPROVED_DOMAINS` and restart the
+backend:
+
+```powershell
+$env:PHASE7_APPROVED_DOMAINS = "careers.acme-corp.example"
+uvicorn app.main:app --reload
+```
+
+Approval is per host, so `acme-corp.example` does not cover `careers.acme-corp.example`.
+
+### The buttons are disabled on a real page
+
+Tick the confirmation checkbox. Until you do, the buttons stay disabled and the backend
+would refuse the request anyway.
+
+### Most Workday fields say "manual review" or "Not supported"
+
+Expected. Workday builds its country, state, and skills pickers from divs, whose value
+lives in framework state the DOM does not expose, so writing to them would either do
+nothing or corrupt the page. The extension flags them and leaves them to you. Workday is
+also a multi-step wizard: only the step on screen is analyzed, and the extension never
+presses Next.
 
 ### No fields detected
 
 - Confirm the page actually has `<input>`, `<textarea>`, or `<select>` elements.
-- Password inputs are skipped by design and never counted.
-- Fields inside an `<iframe>` or a shadow root are not detected in Phase 6.
+- Password and hidden inputs are skipped by design and never counted.
+- Fields inside an `<iframe>` or a shadow root are not detected. If the popup warns about
+  embedded frames, open the form in its own tab.
+- On platforms that reveal sections as you scroll (SmartRecruiters especially), scroll to
+  the rest of the form and run **Detect fields** again.
 
 ### Values are not filling
 
@@ -179,6 +246,7 @@ Missing any of those three steps leaves old code running.
 extension/
   popup.html                    popup entry (Vite input; emits dist/popup.html)
   vite.config.ts                popup build
+  vitest.config.ts              test config (jsdom)
   scripts/build-scripts.mjs     esbuild IIFE build for content + worker
   public/manifest.json          MV3 manifest (copied to dist/)
   src/
@@ -187,25 +255,57 @@ extension/
       contentScript.ts          message handler; acts only when asked
       fieldDetector.ts          metadata-only field detection
       pageHighlighter.ts        outlines and badges per decision
+      platformDetector.ts       URL identity + DOM shape -> which adapter
       safeFiller.ts             final safety gate before touching the DOM
+      adapters/
+        index.ts                registry and adapter selection
+        adapterUtils.ts         shared label/signal helpers
+        genericAdapter.ts       plain-HTML fallback
+        greenhouseAdapter.ts    per-platform metadata only
+        leverAdapter.ts
+        ashbyAdapter.ts
+        workdayAdapter.ts
+        smartRecruitersAdapter.ts
     popup/
       Popup.tsx                 UI and orchestration
       main.tsx                  React entry
       popup.css                 styles
+      components/
+        PlatformStatus.tsx      what the backend says about this page
+        RealPageWarning.tsx     the confirmation gate
+        FillPlanReview.tsx      grouped, redacted plan
     shared/
       apiClient.ts              local backend client + isAllowedPageUrl
       constants.ts              origins, actions, message names
+      messageTypes.ts           typed popup <-> content envelopes
+      permissions.ts            documents and checks the permission model
+      platformTypes.ts          mirrors backend/app/models/platform.py
       types.ts                  mirrors backend/app/models/extension.py
+      urlSafety.ts              client-side mirror of the backend URL rules
 ```
+
+`urlSafety.ts` mirrors the backend allow-list so the popup can decide what to show
+without a round trip. It is presentation only - the backend re-checks every URL, and it
+is the backend's answer that governs.
 
 ## Permissions, and why each is needed
 
 | Permission | Why |
 | --- | --- |
-| `activeTab` | act on the tab you clicked the extension on |
-| `scripting` | reserved for re-injecting the content script into tabs opened before install |
+| `activeTab` | temporary access to the tab you clicked the extension on, expiring on navigation |
+| `scripting` | inject the content script into that tab on demand - how real pages are handled |
 | `storage` | remember the backend URL (never profile data) |
-| six loopback `host_permissions` | reach the local backend and the local sample forms |
+| six loopback `host_permissions` | reach the local backend, the sample forms, and the fixtures |
 
-Deliberately **not** requested: `<all_urls>`, any job-board domain, `tabs`,
-`history`, `bookmarks`, or `cookies`.
+Deliberately **not** requested: `<all_urls>`, any job-board or ATS domain,
+`optional_host_permissions`, `tabs`, `history`, `bookmarks`, `webNavigation`, or
+`cookies`.
+
+Real-page support needs no additional permission because `activeTab` already grants
+exactly the access the design calls for: one tab, only after you interact with the
+extension, gone on navigation. A standing host permission for the ATS domains would be
+strictly worse, since it would let the extension act on those sites without you asking.
+
+`src/shared/permissions.spec.ts` asserts this against `public/manifest.json`, so adding a
+broad host permission or a declarative content script beyond the loopback origins fails
+the test suite.

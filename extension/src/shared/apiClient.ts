@@ -5,7 +5,19 @@
  * and no API keys anywhere in this extension.
  */
 
-import { ALLOWED_PAGE_ORIGINS, DEFAULT_BACKEND_URL } from "./constants";
+import {
+  ALLOWED_PAGE_ORIGINS,
+  DEFAULT_BACKEND_URL,
+  PATH_ANALYZE_REAL_PAGE,
+  PATH_CHECK_URL,
+  PATH_SUPPORTED_PLATFORMS,
+} from "./constants";
+import type {
+  CheckUrlResponse,
+  RealPlatformAnalyzeRequest,
+  RealPlatformAnalyzeResponse,
+  SupportedPlatformsResponse,
+} from "./platformTypes";
 import type {
   ExtensionAnalyzeRequest,
   ExtensionAnalyzeResponse,
@@ -90,6 +102,45 @@ export function analyzeCurrentPage(
   backendUrl: string = DEFAULT_BACKEND_URL,
 ): Promise<ExtensionAnalyzeResponse> {
   return request<ExtensionAnalyzeResponse>(backendUrl, "/extension/analyze-page", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Phase 7: which platforms the backend supports, and which domains are approved. */
+export function getSupportedPlatforms(
+  backendUrl: string = DEFAULT_BACKEND_URL,
+): Promise<SupportedPlatformsResponse> {
+  return request<SupportedPlatformsResponse>(backendUrl, PATH_SUPPORTED_PLATFORMS);
+}
+
+/**
+ * Phase 7: ask whether a page may be analyzed. The backend evaluates the URL
+ * string only - it does not fetch the page.
+ */
+export function checkPageUrl(
+  pageUrl: string,
+  backendUrl: string = DEFAULT_BACKEND_URL,
+): Promise<CheckUrlResponse> {
+  return request<CheckUrlResponse>(backendUrl, PATH_CHECK_URL, {
+    method: "POST",
+    body: JSON.stringify({ page_url: pageUrl }),
+  });
+}
+
+/**
+ * Phase 7: analyze a real application page.
+ *
+ * The backend rejects this with a 400 unless the page is on a supported platform
+ * *and* `user_confirmed_real_page` is true, so callers must not paper over the
+ * confirmation. The response's `instructions` are transient: hand them to the
+ * content script and drop them.
+ */
+export function analyzeRealPage(
+  payload: RealPlatformAnalyzeRequest,
+  backendUrl: string = DEFAULT_BACKEND_URL,
+): Promise<RealPlatformAnalyzeResponse> {
+  return request<RealPlatformAnalyzeResponse>(backendUrl, PATH_ANALYZE_REAL_PAGE, {
     method: "POST",
     body: JSON.stringify(payload),
   });

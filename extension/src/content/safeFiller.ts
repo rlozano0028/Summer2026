@@ -1,17 +1,23 @@
 /**
- * Apply approved fill instructions to the page (Phase 6).
+ * Apply approved fill instructions to the page.
  *
  * This module is the last safety gate before the DOM is touched. The backend
  * already refuses to send a value for anything unsafe, but every check is
  * repeated here so a bug or a tampered response still cannot cause a bad fill.
  *
- * Hard rules:
+ * Hard rules, unchanged from Phase 6 and still enforced on real pages:
  * - Only `action === "fill"` instructions that carry a non-empty value are applied.
  * - Passwords, file inputs, submit controls, disabled, readonly, and hidden
  *   elements are never touched.
- * - Checkboxes and radios are never toggled in Phase 6.
+ * - Checkboxes and radios are never toggled.
+ * - Custom controls (contenteditable, ARIA combobox/listbox/textbox) are never
+ *   touched: their value belongs to framework state we cannot set correctly.
  * - Selects only change on an exact normalized option match.
  * - Nothing is ever clicked, and no form is ever submitted.
+ *
+ * The one Phase 7 addition is a `blur` event after a successful fill, because real
+ * platforms commonly validate on blur and a field left un-blurred can look invalid
+ * to the user even though the value is correct.
  */
 
 import {
@@ -51,21 +57,36 @@ function resolveElement(selector: string): Element | null {
  *
  * Mirrors the backend's gating so the two cannot disagree silently.
  */
-function refusalReason(el: Element): string | null {
+export function refusalReason(el: Element): string | null {
   const tag = el.tagName.toLowerCase();
   if (tag === "button") return "element is a button";
 
   const type = (el.getAttribute("type") ?? "").toLowerCase();
   if (NEVER_FILL_INPUT_TYPES.has(type)) return `input type "${type}" is never filled`;
 
-  const input = el as HTMLInputElement;
-  if (input.disabled || el.hasAttribute("disabled")) return "element is disabled";
-  if (input.readOnly || el.hasAttribute("readonly")) return "element is readonly";
-  if (type === "checkbox" || type === "radio") {
-    return "checkboxes and radios are left for manual review in Phase 6";
+  // Custom controls are named before the generic tag check so the reason shown to
+  // the user says what the element actually is.
+  if (el.hasAttribute("contenteditable")) {
+    return "element is a rich-text editor";
   }
+  const role = (el.getAttribute("role") ?? "").toLowerCase();
+  if (role === "combobox" || role === "listbox" || role === "textbox") {
+    return `element is a custom ${role} widget`;
+  }
+  // Anything that is not a native input is out of scope, whatever it looks like.
   if (tag !== "input" && tag !== "textarea" && tag !== "select") {
     return `unsupported element <${tag}>`;
+  }
+
+  const input = el as HTMLInputElement;
+  if (input.disabled || el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true") {
+    return "element is disabled";
+  }
+  if (input.readOnly || el.hasAttribute("readonly") || el.getAttribute("aria-readonly") === "true") {
+    return "element is readonly";
+  }
+  if (type === "checkbox" || type === "radio") {
+    return "checkboxes and radios are always left for manual review";
   }
   return null;
 }
@@ -91,6 +112,9 @@ function setValueWithEvents(el: HTMLInputElement | HTMLTextAreaElement, value: s
   }
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
+  // Many real forms validate on blur; without this the field can be shown as
+  // invalid even though the value is correct.
+  el.dispatchEvent(new Event("blur", { bubbles: false }));
 }
 
 /** Select an option only on an exact normalized match. Returns false otherwise. */
@@ -105,6 +129,7 @@ function selectExactOption(el: HTMLSelectElement, value: string): boolean {
   el.value = match.value;
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
+  el.dispatchEvent(new Event("blur", { bubbles: false }));
   return true;
 }
 

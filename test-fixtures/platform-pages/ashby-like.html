@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ashby-like Application (SYNTHETIC LOCAL FIXTURE)</title>
+    <link rel="stylesheet" href="fixture.css" />
+  </head>
+  <body>
+    <h1>Ashby-like Application</h1>
+    <p class="notice">
+      <strong>Synthetic local fixture.</strong> Imitates the <em>shape</em> of an
+      Ashby form (an <code>#ashby-application-form-container</code> wrapper,
+      hashed class names, and a contenteditable answer box). Not copied from any
+      real site, submits nowhere, submit button disabled.
+    </p>
+
+    <div id="ashby-application-form-container">
+      <form class="_form_abc123" onsubmit="return false">
+        <fieldset>
+          <legend>Application</legend>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="_systemfield_name">Name<span class="req">*</span></label>
+            <input type="text" id="_systemfield_name" name="_systemfield_name" required />
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="_systemfield_email">Email<span class="req">*</span></label>
+            <input type="email" id="_systemfield_email" name="_systemfield_email" required />
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="_systemfield_phone">Phone</label>
+            <input type="tel" id="_systemfield_phone" name="_systemfield_phone" />
+            <span class="help">Optional, but helps scheduling.</span>
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="_systemfield_location">Location</label>
+            <input type="text" id="_systemfield_location" name="_systemfield_location" />
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Links</legend>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="linkedin">LinkedIn</label>
+            <input type="url" id="linkedin" name="_systemfield_linkedin" />
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="github">GitHub</label>
+            <input type="url" id="github" name="_systemfield_github" />
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="website">Personal website</label>
+            <input type="url" id="website" name="_systemfield_website" />
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Experience</legend>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="skills">Key skills</label>
+            <input type="text" id="skills" name="skills" />
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="company">Most recent company</label>
+            <input type="text" id="company" name="company" />
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="job_title">Most recent title</label>
+            <input type="text" id="job_title" name="job_title" />
+          </div>
+
+          <!-- Custom control: an Ashby-style school picker rendered as a listbox.
+               The extension must flag this and refuse to write to it. -->
+          <div class="field">
+            <span id="school_label">School</span>
+            <div
+              id="school_picker"
+              class="custom-control"
+              role="combobox"
+              aria-expanded="false"
+              aria-labelledby="school_label"
+              tabindex="0"
+            >
+              Select a school
+            </div>
+            <span class="help">Custom picker: fill this one yourself.</span>
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="degree">Degree</label>
+            <input type="text" id="degree" name="degree" />
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="resume">Resume<span class="req">*</span></label>
+            <input type="file" id="resume" name="_systemfield_resume" accept=".pdf,.docx" />
+          </div>
+
+          <!-- Custom control: a contenteditable rich-text answer box. -->
+          <div class="field">
+            <span id="why_label">Why are you interested in this role?</span>
+            <div
+              id="why_editor"
+              class="custom-control"
+              contenteditable="true"
+              role="textbox"
+              aria-labelledby="why_label"
+            ></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Additional questions</legend>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="sponsorship">Will you require visa sponsorship?</label>
+            <select id="sponsorship" name="sponsorship">
+              <option value="">Select...</option>
+              <option>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="salary">Salary expectations</label>
+            <input type="text" id="salary" name="salary" />
+          </div>
+
+          <div class="field _fieldEntry_abc123">
+            <label for="disability">Disability status (voluntary)</label>
+            <select id="disability" name="disability">
+              <option value="">I do not want to answer</option>
+              <option>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+
+          <div class="field checkbox">
+            <input type="checkbox" id="attest" name="attest" />
+            <label for="attest">I attest that my answers are truthful.</label>
+          </div>
+        </fieldset>
+
+        <button type="submit" id="submit-application" disabled>Submit Application (disabled)</button>
+      </form>
+    </div>
+  </body>
+</html>
