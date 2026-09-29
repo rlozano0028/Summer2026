@@ -1,137 +1,104 @@
 /**
- * The reviewable fill plan (Phase 7 extraction of the Phase 6 review list).
- *
- * Moved out of Popup.tsx unchanged in behaviour so both the local and real-page
- * flows show the same review, and so the plan rendering can be read on its own.
- *
- * Rows are grouped by action, fill first, because that is the group the user must
- * scrutinise before clicking Apply. Custom controls are shown as "Not supported" -
- * a different statement from "manual review", since the extension could not act on
- * them even if asked.
- *
- * A custom control replaces the action badge rather than sitting beside it. The
- * real-page endpoint already downgrades these to manual review, but the unchanged
- * Phase 6 local endpoint does not, so a loopback fixture can return `fill` for a
- * control the filler will always refuse. Showing "Fill" there would promise
- * something that cannot happen, so the row states the truth instead.
+ * The reviewable fill plan, grouped the same way as the dashboard: Will fill,
+ * Suggested, Needs review, Protected, Skipped. Will fill comes first because it
+ * is the group the user must check before clicking Fill.
  *
  * Privacy: rows show the backend's redacted `value_preview` only. The real values
  * live in the transient instruction list and are never rendered.
  */
 
+import { useState } from "react";
+
+import type { ExtensionDetectedField, FillPlan } from "../../shared/types";
 import {
-  ACTION_FILL,
-  ACTION_LABELS,
-  ACTION_MANUAL_REVIEW,
-  ACTION_SKIP,
-  ACTION_SUGGEST,
-} from "../../shared/constants";
-import type {
-  ExtensionDetectedField,
-  FieldMapping,
-  FillPlan,
-} from "../../shared/types";
-
-const ACTION_ORDER = [
-  ACTION_FILL,
-  ACTION_SUGGEST,
-  ACTION_MANUAL_REVIEW,
-  ACTION_SKIP,
-] as const;
-
-/** Best-effort label, using the same signals the backend classifies on. */
-function fieldLabel(
-  field: ExtensionDetectedField | undefined,
-  fallback: string,
-): string {
-  if (!field) return fallback;
-  return (
-    field.label_text ||
-    field.aria_label ||
-    field.name ||
-    field.placeholder ||
-    field.id_attribute ||
-    fallback
-  );
-}
+  GROUP_INFO,
+  GROUP_ORDER,
+  buildReview,
+  confidenceLevel,
+  type ReviewRow,
+} from "../decisions";
 
 const UNSUPPORTED_REASON =
-  "Custom control - the extension cannot set this, so it will not be touched. Fill it in yourself.";
+  "Custom control the extension cannot set safely. It will not be touched; fill it in yourself.";
 
-function MappingRow({
-  mapping,
-  label,
-  unsupported,
-}: {
-  mapping: FieldMapping;
-  label: string;
-  unsupported: boolean;
-}) {
+function Row({ row }: { row: ReviewRow }) {
+  const [open, setOpen] = useState(false);
+  const { mapping, group, unsupported } = row;
+  const scored = group === "fill" || group === "suggest" || group === "manual_review";
+
   return (
-    <div className="row">
+    <li className={`row group-${group}`}>
       <div className="row-head">
-        <span className="row-name" title={label}>
-          {label}
+        <span className="row-name" title={row.label}>
+          {row.label}
         </span>
-        <span>
-          {mapping.sensitive && <span className="badge sensitive">Sensitive</span>}{" "}
-          {unsupported ? (
-            <span className="badge unsupported">Not supported</span>
-          ) : (
-            <span className={`badge ${mapping.action}`}>
-              {ACTION_LABELS[mapping.action] ?? mapping.action}
-            </span>
-          )}
+        <span className={`badge status-${group}`}>
+          {unsupported ? "Not supported" : GROUP_INFO[group].label}
         </span>
       </div>
+      <div className="row-reason">{unsupported ? UNSUPPORTED_REASON : mapping.reason}</div>
       <div className="row-meta">
-        {mapping.category} &middot; confidence {(mapping.confidence ?? 0).toFixed(2)}
-        {mapping.value_preview && (
-          <>
-            {" "}
-            &middot; <span className="preview">{mapping.value_preview}</span>
-          </>
+        {scored && !unsupported && (
+          <span>
+            {confidenceLevel(mapping.confidence ?? 0)} confidence{" "}
+            <span className="num">({(mapping.confidence ?? 0).toFixed(2)})</span>
+          </span>
+        )}
+        {mapping.value_preview && <span className="preview">{mapping.value_preview}</span>}
+        {mapping.missing_value && <span className="flag">No profile value</span>}
+        {(mapping.evidence ?? []).length > 0 && (
+          <button
+            type="button"
+            className="link"
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? "Hide why" : "Why?"}
+          </button>
         )}
       </div>
-      <div className="row-reason">
-        {unsupported ? UNSUPPORTED_REASON : mapping.reason}
-      </div>
-    </div>
+      {open && (
+        <ul className="evidence-list">
+          {(mapping.evidence ?? []).map((ev, index) => (
+            <li key={index}>
+              {ev.source} matched “{ev.matched_text}”{" "}
+              <span className="num">({(ev.weight ?? 0).toFixed(2)})</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
   );
 }
 
-export interface FillPlanReviewProps {
+export function FillPlanReview({
+  plan,
+  fields,
+}: {
   plan: FillPlan;
   fields: ExtensionDetectedField[];
-}
-
-export function FillPlanReview({ plan, fields }: FillPlanReviewProps) {
-  const fieldsById = new Map(fields.map((field) => [field.field_id, field]));
-  const grouped = new Map<string, FieldMapping[]>(
-    ACTION_ORDER.map((action) => [action, [] as FieldMapping[]]),
-  );
-  for (const mapping of plan.mappings) {
-    (grouped.get(mapping.action) ?? grouped.get(ACTION_MANUAL_REVIEW)!).push(mapping);
-  }
+}) {
+  const review = buildReview(plan, fields);
 
   return (
-    <section>
-      <h2>Fill plan review</h2>
-      <div className="review">
-        {ACTION_ORDER.flatMap((action) =>
-          (grouped.get(action) ?? []).map((mapping) => {
-            const field = fieldsById.get(mapping.field_id);
-            return (
-              <MappingRow
-                key={mapping.field_id}
-                mapping={mapping}
-                label={fieldLabel(field, mapping.field_id)}
-                unsupported={field?.is_custom_control === true}
-              />
-            );
-          }),
-        )}
-      </div>
-    </section>
+    <div className="review">
+      {GROUP_ORDER.map((group) =>
+        review[group].length > 0 ? (
+          <details key={group} className="group" open={group === "fill"}>
+            <summary>
+              <span className={`dot status-${group}`} aria-hidden="true" />
+              <span className="group-name">{GROUP_INFO[group].label}</span>
+              <span className="num group-count">{review[group].length}</span>
+            </summary>
+            <p className="group-hint">{GROUP_INFO[group].hint}</p>
+            <ul className="rows">
+              {review[group].map((row) => (
+                <Row key={row.mapping.field_id} row={row} />
+              ))}
+            </ul>
+          </details>
+        ) : null,
+      )}
+    </div>
   );
 }

@@ -72,6 +72,8 @@ export interface FieldMapping {
   evidence: MatchEvidence[];
   warnings: string[];
   field_fingerprint: string;
+  /** Visible label of the field, when the backend provides it. */
+  field_label?: string;
 }
 
 export interface FillPlan {

@@ -21,11 +21,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-  ACTION_FILL,
-  ACTION_LABELS,
-  ACTION_MANUAL_REVIEW,
-  ACTION_SKIP,
-  ACTION_SUGGEST,
   ALLOWED_PAGE_ORIGINS,
   DEFAULT_BACKEND_URL,
   MSG_APPLY_FILL_INSTRUCTIONS,
@@ -57,13 +52,7 @@ import { isLocalUrl } from "../shared/urlSafety";
 import { FillPlanReview } from "./components/FillPlanReview";
 import { PlatformStatus } from "./components/PlatformStatus";
 import { RealPageWarning } from "./components/RealPageWarning";
-
-const ACTION_ORDER = [
-  ACTION_FILL,
-  ACTION_SUGGEST,
-  ACTION_MANUAL_REVIEW,
-  ACTION_SKIP,
-] as const;
+import { GROUP_INFO, GROUP_ORDER, buildReview, stepState } from "./decisions";
 
 /** The bundled content script, injected on demand for non-loopback pages. */
 const CONTENT_SCRIPT_FILE = "content/contentScript.js";
@@ -150,12 +139,16 @@ export function Popup() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [highlighted, setHighlighted] = useState(false);
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
 
   const isLocalPage = isLocalUrl(pageUrl);
   const tabProblem = describeTabAccessProblem(pageUrl);
   const needsConfirmation = safety?.requires_user_confirmation === true;
   const pageAllowed = safety?.allowed === true && tabProblem === null;
   const canAnalyze = pageAllowed && (!needsConfirmation || confirmedRealPage);
+  const unsupportedCount =
+    detected?.fields.filter((field) => field.is_custom_control).length ?? 0;
 
   useEffect(() => {
     void (async () => {
@@ -190,7 +183,8 @@ export function Popup() {
 
   /** Run an async action with uniform busy/error handling. */
   const run = useCallback(
-    async (label: string, action: () => Promise<string | null>) => {
+    async (label: string, step: 1 | 2 | 3, action: () => Promise<string | null>) => {
+      setActiveStep(step);
       setBusy(true);
       setError(null);
       setStatus(null);
@@ -207,7 +201,7 @@ export function Popup() {
   );
 
   const handleDetect = () =>
-    run("Detect fields", async () => {
+    run("Detect fields", 1, async () => {
       if (tabId === null) throw new Error("No active tab was found.");
       if (!canAnalyze) {
         throw new Error(
@@ -231,7 +225,7 @@ export function Popup() {
     });
 
   const handleAnalyze = () =>
-    run("Analyze", async () => {
+    run("Analyze", 2, async () => {
       if (!detected) throw new Error("Run 'Detect fields' first.");
       if (!canAnalyze) throw new Error("This page is not approved for analysis.");
 
@@ -275,11 +269,11 @@ export function Popup() {
         if (result.platform) setDetection(result.platform);
       }
       setApplyResult(null);
-      return "Plan ready. Review each decision below before applying anything.";
+      return "Plan ready. Check the Will fill list before filling anything.";
     });
 
   const handleHighlight = () =>
-    run("Highlight", async () => {
+    run("Highlight", 3, async () => {
       if (tabId === null) throw new Error("No active tab was found.");
       if (!analysis) throw new Error("Analyze the page first.");
       await ensureContentScript(tabId);
@@ -287,11 +281,12 @@ export function Popup() {
         type: MSG_HIGHLIGHT_FIELDS,
         mappings: analysis.fill_plan.mappings,
       });
+      setHighlighted(true);
       return `Highlighted ${marked} field(s) on the page.`;
     });
 
   const handleApply = () =>
-    run("Apply safe fills", async () => {
+    run("Apply safe fills", 3, async () => {
       if (tabId === null) throw new Error("No active tab was found.");
       if (!analysis) throw new Error("Analyze the page first.");
       if (!canAnalyze) throw new Error("This page is not approved for filling.");
@@ -303,32 +298,39 @@ export function Popup() {
       setApplyResult(result);
       return (
         `Filled ${result.filled}, skipped ${result.skipped}, failed ${result.failed}. ` +
-        "Nothing was submitted - check the whole form yourself."
+        "Nothing was submitted. Check the whole form, then submit it yourself."
       );
     });
 
   const handleClear = () =>
-    run("Clear highlights", async () => {
+    run("Clear highlights", 3, async () => {
       if (tabId === null) throw new Error("No active tab was found.");
       await ensureContentScript(tabId);
       const { cleared } = await sendToContentScript<{ cleared: number }>(tabId, {
         type: MSG_CLEAR_HIGHLIGHTS,
       });
+      setHighlighted(false);
       return `Cleared highlights on ${cleared} field(s).`;
     });
 
   const plan = analysis?.fill_plan;
-  const counts = useMemo(
-    () => ({
-      detected: detected?.fields.length ?? 0,
-      [ACTION_FILL]: plan?.fill_count ?? 0,
-      [ACTION_SUGGEST]: plan?.suggest_count ?? 0,
-      [ACTION_MANUAL_REVIEW]: plan?.manual_review_count ?? 0,
-      [ACTION_SKIP]: plan?.skip_count ?? 0,
-      unsupported: analysis?.unsupported_count ?? 0,
-    }),
-    [detected, plan, analysis],
+  const review = useMemo(
+    () => (plan ? buildReview(plan, detected?.fields ?? []) : null),
+    [plan, detected],
   );
+  const fillCount = review?.fill.length ?? 0;
+  const steps = stepState({
+    busy,
+    backendOk: health?.ok === true,
+    profileExists: health?.profile_exists === true,
+    checkingPage: checkingPlatform,
+    pageAllowed,
+    needsConfirmation,
+    confirmed: confirmedRealPage,
+    detected: detected !== null,
+    analyzed: analysis !== null,
+    fillCount,
+  });
 
   const allWarnings = [
     ...(analysis?.warnings ?? []),
@@ -342,42 +344,52 @@ export function Popup() {
     detection?.display_name ??
     "this";
 
+  const profileDot: "ok" | "warn" | "bad" = !health?.profile_exists
+    ? "bad"
+    : health.profile_needs_review
+      ? "warn"
+      : "ok";
+  const profileText = !health?.profile_exists
+    ? "none saved yet. Create one in the dashboard."
+    : health.profile_needs_review
+      ? "saved but not marked reviewed. Check it in the dashboard."
+      : "reviewed and ready.";
+
+  const messages = (step: 1 | 2 | 3) =>
+    activeStep === step && (status || error) ? (
+      <div className={`notice step-notice ${error ? "bad" : "ok"}`} role={error ? "alert" : "status"}>
+        {error ?? status}
+      </div>
+    ) : null;
+
   return (
     <div className="popup">
-      <h1>Autofill Assistant</h1>
-      <p className="tagline">
-        You review, you approve, you submit. This extension never submits a form.
-      </p>
+      <header className="popup-header">
+        <h1>Autofill Assistant</h1>
+        <p className="tagline">You review. You submit. Nothing is ever submitted for you.</p>
+      </header>
 
-      <section>
-        <h2>Backend</h2>
-        <div className="status">
+      <div className="status">
+        <div className="status-line">
+          <StatusDot state={healthError ? "bad" : health?.ok ? "ok" : "idle"} />
+          <span>
+            <strong>Backend</strong>{" "}
+            {healthError
+              ? "not reachable. Start it with uvicorn from the backend folder."
+              : health
+                ? "connected"
+                : "checking…"}
+          </span>
+        </div>
+        {health && (
           <div className="status-line">
-            <StatusDot state={healthError ? "bad" : health?.ok ? "ok" : "idle"} />
+            <StatusDot state={profileDot} />
             <span>
-              {healthError
-                ? healthError
-                : health
-                  ? health.backend
-                  : "Checking the local backend..."}
+              <strong>Profile</strong> {profileText}
             </span>
           </div>
-          {health && (
-            <div className="status-line">
-              <StatusDot
-                state={
-                  !health.profile_exists
-                    ? "bad"
-                    : health.profile_needs_review
-                      ? "warn"
-                      : "ok"
-                }
-              />
-              <span>{health.message}</span>
-            </div>
-          )}
-        </div>
-      </section>
+        )}
+      </div>
 
       <PlatformStatus
         pageUrl={pageUrl}
@@ -390,15 +402,10 @@ export function Popup() {
       {tabProblem && <div className="notice bad">{tabProblem}</div>}
 
       {!checkingPlatform && safety && !safety.allowed && !tabProblem && (
-        <div className="notice warn">
-          This page is not supported. Supported platforms are Greenhouse, Lever, Ashby,
-          Workday, and SmartRecruiters, plus company domains you approved in the
-          backend and these local pages:
-          <ul>
-            {ALLOWED_PAGE_ORIGINS.map((origin) => (
-              <li key={origin}>{origin}</li>
-            ))}
-          </ul>
+        <div className="notice">
+          Supported: Greenhouse, Lever, Ashby, Workday, and SmartRecruiters pages, company
+          domains you approved in the backend, and local test pages on{" "}
+          {ALLOWED_PAGE_ORIGINS.join(", ")}.
         </div>
       )}
 
@@ -412,79 +419,105 @@ export function Popup() {
         />
       )}
 
-      <section>
-        <h2>Actions</h2>
-        <div className="actions">
-          <button onClick={handleDetect} disabled={busy || !canAnalyze}>
-            Detect fields
-          </button>
-          <button onClick={handleAnalyze} disabled={busy || !detected || !canAnalyze}>
-            Analyze with local profile
-          </button>
-          <button onClick={handleHighlight} disabled={busy || !analysis}>
-            Highlight decisions
-          </button>
-          <button onClick={handleClear} disabled={busy}>
-            Clear highlights
-          </button>
-          <button
-            className="primary wide"
-            onClick={handleApply}
-            disabled={busy || !analysis || !canAnalyze || (plan?.fill_count ?? 0) === 0}
-          >
-            Apply safe fills{plan ? ` (${plan.fill_count})` : ""}
-          </button>
-        </div>
-      </section>
+      {steps.blocker && !busy && <div className="notice">{steps.blocker}</div>}
 
-      {status && <div className="notice">{status}</div>}
-      {error && <div className="notice bad">{error}</div>}
-
-      <section>
-        <h2>Counts</h2>
-        <div className="counts">
-          <div className="count">
-            <span className="value">{counts.detected}</span>
-            <span className="label">Detected</span>
+      <ol className="steps">
+        <li className={detected ? "done" : ""}>
+          <div className="step-head">
+            <span className="step-num">1</span>
+            <span className="step-title">Scan this page</span>
+            <button onClick={handleDetect} disabled={!steps.canDetect}>
+              {detected ? "Scan again" : "Scan"}
+            </button>
           </div>
-          {ACTION_ORDER.map((action) => (
-            <div className={`count ${action}`} key={action}>
-              <span className="value">{counts[action]}</span>
-              <span className="label">{ACTION_LABELS[action]}</span>
+          {messages(1)}
+          {detected && (
+            <p className="step-result">
+              {detected.fields.length} field(s) found
+              {unsupportedCount > 0
+                ? `, ${unsupportedCount} of them custom controls the extension will not touch`
+                : ""}
+              .
+            </p>
+          )}
+        </li>
+
+        <li className={analysis ? "done" : ""}>
+          <div className="step-head">
+            <span className="step-num">2</span>
+            <span className="step-title">Build a fill plan</span>
+            <button onClick={handleAnalyze} disabled={!steps.canAnalyze}>
+              {analysis ? "Rebuild" : "Build plan"}
+            </button>
+          </div>
+          {messages(2)}
+          {review && (
+            <div className="mini-counts">
+              {GROUP_ORDER.map((group) => (
+                <span key={group} className={`mini status-${group}`}>
+                  <span className="num">{review[group].length}</span> {GROUP_INFO[group].label}
+                </span>
+              ))}
             </div>
-          ))}
-          <div className="count unsupported">
-            <span className="value">{counts.unsupported}</span>
-            <span className="label">Unsupported</span>
+          )}
+        </li>
+
+        <li className={applyResult ? "done" : ""}>
+          <div className="step-head">
+            <span className="step-num">3</span>
+            <span className="step-title">Review, then fill</span>
           </div>
-        </div>
-      </section>
+          {plan && <FillPlanReview plan={plan} fields={detected?.fields ?? []} />}
+          {analysis && (
+            <div className="highlight-row">
+              <button onClick={handleHighlight} disabled={busy}>
+                Highlight on page
+              </button>
+              <button onClick={handleClear} disabled={busy || !highlighted}>
+                Clear highlights
+              </button>
+            </div>
+          )}
+          <button className="primary wide" onClick={handleApply} disabled={!steps.canApply}>
+            {analysis
+              ? `Fill ${fillCount} safe field${fillCount === 1 ? "" : "s"}`
+              : "Fill safe fields"}
+          </button>
+          {messages(3)}
+          <p className="submit-note">
+            Only the fields under “Will fill” are typed in. Nothing is submitted: you check
+            the whole form and click Submit yourself.
+          </p>
+        </li>
+      </ol>
+
 
       {allWarnings.length > 0 && (
-        <section>
-          <h2>Warnings</h2>
-          <div className="notice warn">
-            <ul>
-              {allWarnings.map((warning, index) => (
-                <li key={`${index}-${warning}`}>{warning}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <details className="warnings">
+          <summary>
+            {allWarnings.length} note{allWarnings.length === 1 ? "" : "s"} about this page
+          </summary>
+          <ul>
+            {allWarnings.map((warning, index) => (
+              <li key={`${index}-${warning}`}>{warning}</li>
+            ))}
+          </ul>
+        </details>
       )}
 
-      {plan && <FillPlanReview plan={plan} fields={detected?.fields ?? []} />}
-
-      <div className="footnote">
-        <strong>What this extension will not do:</strong>
+      <details className="footnote">
+        <summary>What this extension never does</summary>
         <ul>
           <li>Submit a form, or click Apply, Next, or any other button.</li>
-          <li>Autofill sensitive or legal questions - answer those yourself.</li>
-          <li>Fill passwords or attach files.</li>
-          <li>Run on a page you did not open and activate.</li>
+          <li>
+            Fill sensitive or legal questions (work authorization, sponsorship, salary,
+            EEO, criminal history).
+          </li>
+          <li>Fill passwords or hidden fields, or attach files.</li>
+          <li>Run on a page you did not open and click the extension on.</li>
+          <li>Store your profile in the browser or send it anywhere but your local backend.</li>
         </ul>
-        Always read the whole form yourself before submitting it.
-      </div>
+      </details>
     </div>
   );
 }

@@ -32,20 +32,24 @@ const BADGE_CLASS = "autofill-assistant-badge";
 const WRAPPER_CLASS = "autofill-assistant-badge-anchor";
 const OUTLINE_ATTRIBUTE = "data-autofill-assistant-action";
 
-/** Pseudo-action used for controls the extension refuses to modify. */
+/** Pseudo-actions: controls the extension refuses to modify, and sensitive fields. */
 export const STATE_UNSUPPORTED = "unsupported";
+const STATE_PROTECTED = "protected";
 
+// Same palette as the popup and dashboard (see popup.css).
 const ACTION_COLORS: Record<string, string> = {
-  [ACTION_FILL]: "#1a7f37",
-  [ACTION_SUGGEST]: "#9a6700",
-  [ACTION_MANUAL_REVIEW]: "#0969da",
-  [ACTION_SKIP]: "#6e7781",
-  [STATE_UNSUPPORTED]: "#8250df",
+  [ACTION_FILL]: "#1f7045",
+  [ACTION_SUGGEST]: "#1e6474",
+  [ACTION_MANUAL_REVIEW]: "#8a5300",
+  [ACTION_SKIP]: "#5b6474",
+  [STATE_UNSUPPORTED]: "#8a5300",
+  [STATE_PROTECTED]: "#5e3f93",
 };
 
 const STATE_LABELS: Record<string, string> = {
   ...ACTION_LABELS,
   [STATE_UNSUPPORTED]: "Not supported",
+  [STATE_PROTECTED]: "Protected",
 };
 
 function ensureStyles(doc: Document): void {
@@ -93,12 +97,13 @@ function ensureStyles(doc: Document): void {
 
 /** The state a mapping should be shown as: its action, or `unsupported`. */
 function stateFor(mapping: FieldMapping, unsupportedIds: Set<string>): string {
+  if (mapping.sensitive) return STATE_PROTECTED;
   return unsupportedIds.has(mapping.field_id) ? STATE_UNSUPPORTED : mapping.action;
 }
 
 function badgeLabel(mapping: FieldMapping, state: string): string {
   const base = STATE_LABELS[state] ?? state;
-  return mapping.sensitive ? `${base} - sensitive` : base;
+  return mapping.sensitive ? `${base} (sensitive)` : base;
 }
 
 function badgeTooltip(mapping: FieldMapping, state: string): string {
