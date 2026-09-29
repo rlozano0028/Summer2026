@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+
 from app.models.automation import (
     ACTION_FILL,
     ACTION_MANUAL_REVIEW,
@@ -280,3 +282,42 @@ def test_override_cannot_force_fill_sensitive_field() -> None:
     assert mapping.action == ACTION_MANUAL_REVIEW
     assert mapping.sensitive is True
     assert mapping.warnings  # warns that the unsafe override was downgraded
+
+
+SENSITIVE_LABELS = [
+    "Are you legally authorized to work in the United States?",
+    "Will you now or in the future require visa sponsorship?",
+    "Desired salary",
+    "Gender",
+    "Race / Ethnicity",
+    "Disability status",
+    "Protected veteran status",
+    "Have you ever been convicted of a felony?",
+    "I certify that the information provided is accurate",
+]
+
+
+@pytest.mark.parametrize("label", SENSITIVE_LABELS)
+def test_sensitive_questions_are_never_filled_even_with_profile_answers(label: str) -> None:
+    from app.models.candidate_profile import Preferences, WorkAuthorization
+
+    profile = _profile()
+    profile.work_authorization = WorkAuthorization(
+        authorized_to_work_us=True, requires_sponsorship=False
+    )
+    profile.preferences = Preferences(salary_expectation="100000")
+    mapping = map_field_to_profile(_field(label_text=label), profile)
+    assert mapping.sensitive is True
+    assert mapping.action == ACTION_MANUAL_REVIEW
+    assert mapping.value_preview is None
+
+
+def test_fill_plan_exposes_field_labels() -> None:
+    plan = build_fill_plan(
+        "form",
+        "file:///form.html",
+        [_field(label_text="First name", name="first_name")],
+        _profile(),
+        use_overrides=False,
+    )
+    assert plan.mappings[0].field_label == "First name"

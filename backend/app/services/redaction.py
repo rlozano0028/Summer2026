@@ -64,7 +64,11 @@ def _looks_like_email(value: str) -> bool:
 
 
 def _looks_like_phone(value: str) -> bool:
-    return sum(c.isdigit() for c in value) >= 5
+    # Only digits and phone punctuation, so a URL or ID that happens to contain
+    # digits (e.g. a LinkedIn slug) is not masked as a phone number.
+    return sum(c.isdigit() for c in value) >= 5 and all(
+        c.isdigit() or c in " +-().x" for c in value
+    )
 
 
 def redact_profile_value(profile_path: Optional[str], value: Optional[str]) -> Optional[str]:

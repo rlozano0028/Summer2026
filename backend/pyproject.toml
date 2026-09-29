@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "resume-autofill-backend"
 version = "0.1.0"
-description = "Local-first personal job-application autofill assistant (Phases 1-4: profile schema, resume ingestion, local dashboard, and a local-only browser-automation prototype)."
+description = "Local-first backend for a personal, review-first job-application autofill assistant."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
