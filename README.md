@@ -37,6 +37,24 @@ your machine.
   [docs/phase-7-real-application-platforms.md](docs/phase-7-real-application-platforms.md)
   and [docs/platform-support-matrix.md](docs/platform-support-matrix.md).
 
+## How decisions are shown
+
+The dashboard and the extension group every field the same way, with the same
+colors:
+
+| Group | Meaning | Filled? |
+| --- | --- | --- |
+| Will fill | Plain profile field, confidence 0.90 or more | Yes, after you click Fill |
+| Suggested | Probable match, confidence 0.60 or more | No, you type it |
+| Needs review | Low confidence, no profile value, or a control that cannot be set | No |
+| Protected | Sensitive or legal question (see below) | Never |
+| Skipped | Button, hidden, disabled, or read-only field | Never |
+
+Protected covers work authorization, sponsorship, salary, demographic/EEO,
+disability, veteran status, criminal history, legal acknowledgments, date of birth,
+and government IDs. Passwords, hidden fields, and file uploads are never filled
+either. Value previews are always redacted (for example `a***@example.com`).
+
 ## Run it locally
 
 Backend (FastAPI):
@@ -97,8 +115,8 @@ Then open `chrome://extensions`, enable **Developer mode**, click
 The backend also serves the sample forms over http so the extension can work on
 them, for example
 <http://127.0.0.1:8000/sample-forms/basic-application.html>. Open one, click the
-extension icon, then use **Detect fields** → **Analyze with local profile** →
-**Highlight decisions** → **Apply safe fills**.
+extension icon, then follow the three steps: **Scan**, **Build plan**, then review
+the plan and click **Fill N safe fields**.
 
 The extension never submits a form, never clicks a button, and never fills
 sensitive/legal fields, passwords, or file uploads. Details and troubleshooting are
@@ -109,7 +127,7 @@ in [extension/README.md](extension/README.md).
 The same extension also works on a real application page you opened yourself, on
 Greenhouse, Lever, Ashby, Workday, or SmartRecruiters over `https`. Open the page,
 click the extension icon, read the warning, tick the confirmation, then use the
-same Detect → Analyze → Highlight → Apply flow. The confirmation is required on
+same three steps. The confirmation is required on
 every page and resets whenever the popup closes.
 
 Company-hosted forms are opt-in per host via the backend environment variable
@@ -143,6 +161,24 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+## What this project intentionally does not do
+
+- Submit a form or click Apply, Next, or any other button.
+- Fill sensitive or legal questions, passwords, hidden fields, or file uploads.
+- Log in, solve captchas, navigate between pages, scrape job boards, or apply in
+  bulk.
+- Run on a page you did not open and click the extension on.
+- Send your data to any cloud service or require an API key.
+
+## Known limitations
+
+- Fields inside iframes or shadow roots are not detected; open the form in its own
+  tab.
+- Custom dropdowns and rich-text editors (common on Workday) are shown as
+  Not supported and left for you.
+- Education, experience, and projects are edited as JSON in the dashboard.
+- Suggested fields are never filled automatically, even when they are right.
 
 ## Privacy
 

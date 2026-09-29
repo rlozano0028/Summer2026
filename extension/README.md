@@ -136,13 +136,25 @@ nothing runs on a page you did not activate. See
 1. Open the form, then click the extension icon.
 2. On a real page: read the warning box and tick the confirmation. The box is unchecked
    every time the popup opens, and the backend refuses the request without it.
-3. **Detect fields** - reads field metadata from the page (never values).
-4. **Analyze with local profile** - sends that metadata to the backend and gets a
-   plan back.
-5. **Highlight decisions** - outlines and badges each field on the page.
-6. **Apply safe fills** - fills only the `fill` decisions.
-7. **Clear highlights** - removes the page decoration.
-8. Read the whole form yourself, then submit it yourself.
+3. **Step 1, Scan** - reads field metadata from the page (never values).
+4. **Step 2, Build plan** - sends that metadata to the backend and gets a plan
+   back. The counts show how many fields are in each group.
+5. **Step 3, Review** - the plan is grouped the same way as in the dashboard:
+   - **Will fill**: plain profile fields matched with high confidence (0.90+).
+   - **Suggested**: probable matches (0.60+). Not filled; type them yourself.
+   - **Needs review**: low confidence, no profile value, or a custom control the
+     extension cannot set (badged "Not supported").
+   - **Protected**: sensitive or legal questions. Never filled.
+   - **Skipped**: buttons, hidden, disabled, or read-only fields.
+
+   Click **Why?** on a row to see the evidence behind it. **Highlight on page**
+   outlines and badges each field; **Clear highlights** removes that again.
+6. **Fill N safe fields** - fills only the fields under Will fill.
+7. Read the whole form yourself, then submit it yourself.
+
+A button is disabled until its step can run, and a single line above the steps
+says what is in the way (unsupported page, confirmation not ticked, backend not
+running, no saved profile, or nothing safe to fill).
 
 ## Troubleshooting
 
@@ -204,7 +216,7 @@ presses Next.
 - Fields inside an `<iframe>` or a shadow root are not detected. If the popup warns about
   embedded frames, open the form in its own tab.
 - On platforms that reveal sections as you scroll (SmartRecruiters especially), scroll to
-  the rest of the form and run **Detect fields** again.
+  the rest of the form and click **Scan again**.
 
 ### Values are not filling
 
@@ -231,8 +243,7 @@ the file yourself.
 ### The popup shows stale data
 
 The popup keeps its state in memory only, so it resets whenever it closes. If it
-looks out of date relative to the page, click **Detect fields** and
-**Analyze with local profile** again. After editing your profile in the dashboard,
+looks out of date relative to the page, click **Scan again** and **Rebuild**. After editing your profile in the dashboard,
 close and reopen the popup so it re-fetches `/extension/health`.
 
 ### Nothing changed after a code edit

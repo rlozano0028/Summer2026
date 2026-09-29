@@ -87,7 +87,7 @@ it. Expect most of a Workday form to be marked manual review or not supported.
 
 **SmartRecruiters.** `data-test` attributes are used for both selectors and labels.
 Location is an autocomplete widget and is left to you. Form sections appear as you
-scroll, so re-run Detect fields after more of the form is rendered.
+scroll, so click Scan again after more of the form is rendered.
 
 **Company-hosted forms.** No assumptions beyond ordinary HTML. Because these vary
 without limit, the adapter is conservative and every field deserves a look before you
