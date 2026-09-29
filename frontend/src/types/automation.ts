@@ -52,11 +52,6 @@ export interface SampleFormsResponse {
   forms: string[];
 }
 
-export interface RunSampleOptions {
-  headless?: boolean;
-  dryRun?: boolean;
-}
-
 const KNOWN_ACTIONS: FieldAction[] = ["fill", "suggest", "manual_review", "skip"];
 
 function asFieldAction(value: unknown): FieldAction {

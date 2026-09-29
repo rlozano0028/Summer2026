@@ -19,7 +19,7 @@ approve. You review the form and you submit it.
 | Backend service | `platform_policy` - the safety rules: confirmation, downgrades, and a final value-stripping pass |
 | Backend routes | `GET /platforms/supported`, `POST /platforms/check-url`, `POST /extension/analyze-real-page` |
 | Backend hosting | `/test-fixtures/*` static mount for the synthetic platform fixtures |
-| Extension shared | `platformTypes.ts`, `urlSafety.ts`, `permissions.ts`, `messageTypes.ts` |
+| Extension shared | `platformTypes.ts`, `urlSafety.ts`, `permissions.ts` |
 | Extension content | `platformDetector.ts` and six adapters under `content/adapters/` |
 | Extension popup | `PlatformStatus`, `RealPageWarning`, `FillPlanReview`, and the real-page flow in `Popup.tsx` |
 | Extension tests | `vitest` + `jsdom`, 100 specs covering the safety-critical helpers |

@@ -28,13 +28,6 @@ export const ACTION_SUGGEST = "suggest";
 export const ACTION_MANUAL_REVIEW = "manual_review";
 export const ACTION_SKIP = "skip";
 
-export const ACTIONS = [
-  ACTION_FILL,
-  ACTION_SUGGEST,
-  ACTION_MANUAL_REVIEW,
-  ACTION_SKIP,
-] as const;
-
 /** Human-readable labels for the popup and page badges. */
 export const ACTION_LABELS: Record<string, string> = {
   [ACTION_FILL]: "Fill",
@@ -96,5 +89,4 @@ export const PLATFORM_LABELS: Record<string, string> = {
 
 /** Backend paths used by Phase 7. Listed here so the client cannot typo them. */
 export const PATH_ANALYZE_REAL_PAGE = "/extension/analyze-real-page";
-export const PATH_SUPPORTED_PLATFORMS = "/platforms/supported";
 export const PATH_CHECK_URL = "/platforms/check-url";

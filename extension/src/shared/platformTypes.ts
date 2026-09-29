@@ -18,7 +18,6 @@
 import type {
   ExtensionDetectedField,
   ExtensionFillInstruction,
-  FieldMapping,
   FillPlan,
 } from "./types";
 
@@ -31,26 +30,6 @@ export type PlatformId =
   | "workday"
   | "smartrecruiters"
   | "unsupported";
-
-export type RiskLevel = "low" | "medium" | "high";
-
-/** Static description of a platform, from GET /platforms/supported. */
-export interface SupportedPlatform {
-  platform_id: string;
-  display_name: string;
-  enabled: boolean;
-  default_allowed_domains: string[];
-  notes: string | null;
-  supports_standard_inputs: boolean;
-  supports_custom_selects: boolean;
-  supports_iframes: boolean;
-  risk_level: string;
-}
-
-export interface SupportedPlatformsResponse {
-  platforms: SupportedPlatform[];
-  extra_approved_domains: string[];
-}
 
 /** What platform a page appears to be, and the evidence for it. */
 export interface PlatformDetection {
@@ -154,26 +133,4 @@ export interface PlatformAdapter {
   getUnsupportedWarnings(doc: Document): string[];
   /** Optional per-field normalization applied before mapping. */
   normalizeFieldMetadata?(field: ExtensionDetectedField): ExtensionDetectedField;
-}
-
-/** Counts the popup shows above the plan review. */
-export interface PlanCounts {
-  detected: number;
-  fill: number;
-  suggest: number;
-  manualReview: number;
-  skip: number;
-  unsupported: number;
-}
-
-export function countPlan(plan: FillPlan, unsupported = 0): PlanCounts {
-  const mappings: FieldMapping[] = plan.mappings ?? [];
-  return {
-    detected: mappings.length,
-    fill: plan.fill_count,
-    suggest: plan.suggest_count,
-    manualReview: plan.manual_review_count,
-    skip: plan.skip_count,
-    unsupported,
-  };
 }

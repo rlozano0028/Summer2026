@@ -109,9 +109,3 @@ def build_field_context(field: FormField) -> FieldContext:
         is_checkbox=field.is_checkbox or field.input_type == "checkbox",
         is_radio=field.is_radio or field.input_type == "radio",
     )
-
-
-def build_field_contexts(fields: list[FormField]) -> list[FieldContext]:
-    """Convert a list of raw fields into a list of enriched contexts."""
-
-    return [build_field_context(field) for field in fields]

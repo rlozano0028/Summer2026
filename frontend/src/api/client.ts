@@ -6,17 +6,14 @@ import {
   normalizeFillPlan,
   type AutofillResult,
   type FillPlan,
-  type RunSampleOptions,
   type SampleFormsResponse,
 } from "../types/automation";
 import type {
-  MappingOverride,
   MappingOverrideCreate,
   SaveOverrideResponse,
 } from "../types/fieldMapping";
 import type { CandidateProfile } from "../types/candidateProfile";
 import type {
-  DeleteProfileResponse,
   HealthResponse,
   ResumeParseResult,
 } from "../types/resume";
@@ -76,10 +73,6 @@ export async function saveProfile(
   });
 }
 
-export async function deleteProfile(): Promise<DeleteProfileResponse> {
-  return jsonRequest<DeleteProfileResponse>("/profile", { method: "DELETE" });
-}
-
 export async function updateReviewStatus(
   needsReview: boolean,
   reviewNote?: string,
@@ -134,28 +127,7 @@ export async function dryRunSampleForm(
   });
 }
 
-export async function runSampleAutofill(
-  formName: string,
-  options: RunSampleOptions = {},
-): Promise<AutofillResult> {
-  return jsonRequest<AutofillResult>("/automation/run-sample", {
-    method: "POST",
-    body: JSON.stringify({
-      form_name: formName,
-      headless: options.headless ?? true,
-      dry_run: options.dryRun ?? false,
-    }),
-  });
-}
-
 // --- Phase 5: local mapping overrides (local-only, user-controlled) ---
-
-export async function getMappingOverrides(
-  formName?: string,
-): Promise<MappingOverride[]> {
-  const query = formName ? `?form_name=${encodeURIComponent(formName)}` : "";
-  return jsonRequest<MappingOverride[]>(`/mapping-overrides${query}`);
-}
 
 export async function saveMappingOverride(
   override: MappingOverrideCreate,
@@ -164,13 +136,4 @@ export async function saveMappingOverride(
     method: "POST",
     body: JSON.stringify(override),
   });
-}
-
-export async function deleteMappingOverride(
-  overrideId: string,
-): Promise<{ deleted: boolean; override_id: string }> {
-  return jsonRequest<{ deleted: boolean; override_id: string }>(
-    `/mapping-overrides/${encodeURIComponent(overrideId)}`,
-    { method: "DELETE" },
-  );
 }

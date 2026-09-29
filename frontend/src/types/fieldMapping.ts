@@ -64,15 +64,3 @@ export const SAFE_CATEGORIES: readonly string[] = [
   "experience.company",
   "experience.title",
 ];
-
-// Categories that can never be autofilled (used to warn in the UI).
-export const SENSITIVE_CATEGORIES: readonly string[] = [
-  "sensitive.work_authorization",
-  "sensitive.sponsorship",
-  "sensitive.salary",
-  "sensitive.demographic",
-  "sensitive.disability",
-  "sensitive.veteran",
-  "sensitive.legal_acknowledgment",
-  "sensitive.criminal_history",
-];

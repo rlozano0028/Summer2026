@@ -143,9 +143,8 @@ export interface DetectFieldsResult {
 /**
  * Envelope for every popup -> content script message.
  *
- * Phase 7 adds typed alternatives in messageTypes.ts. This loose shape is kept for
- * the existing Phase 6 call sites and for the runtime handler, which has to accept
- * whatever arrives over `chrome.runtime.onMessage`.
+ * Deliberately loose: the runtime handler has to accept whatever arrives over
+ * `chrome.runtime.onMessage`.
  */
 export interface ContentMessage {
   type: string;

@@ -41,7 +41,7 @@ resulting `FillPlan`.
 `app/services/field_context_builder.py` converts a raw `FormField` into a
 `FieldContext`:
 
-- `build_field_context(field)` / `build_field_contexts(fields)`
+- `build_field_context(field)`
 - `field_text` - a human-readable join of label, placeholder, aria-label, name,
   id, autocomplete, nearby text, and options.
 - `normalized_text` - the lowercased, punctuation-normalized version used for

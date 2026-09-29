@@ -275,9 +275,8 @@ extension/
         RealPageWarning.tsx     the confirmation gate
         FillPlanReview.tsx      grouped, redacted plan
     shared/
-      apiClient.ts              local backend client + isAllowedPageUrl
+      apiClient.ts              local backend client
       constants.ts              origins, actions, message names
-      messageTypes.ts           typed popup <-> content envelopes
       permissions.ts            documents and checks the permission model
       platformTypes.ts          mirrors backend/app/models/platform.py
       types.ts                  mirrors backend/app/models/extension.py

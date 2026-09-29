@@ -118,13 +118,3 @@ export function iframeWarning(doc: Document, platformName: string): string[] {
       "section appears to be missing.",
   ];
 }
-
-/** Warn about custom controls the extension refuses to touch. */
-export function customControlWarning(fields: ExtensionDetectedField[]): string[] {
-  const count = fields.filter((field) => field.is_custom_control).length;
-  if (count === 0) return [];
-  return [
-    `${count} field(s) on this page are custom controls (dropdowns or rich-text ` +
-      "boxes built from divs). They are left for you to fill.",
-  ];
-}

@@ -6,17 +6,14 @@
  */
 
 import {
-  ALLOWED_PAGE_ORIGINS,
   DEFAULT_BACKEND_URL,
   PATH_ANALYZE_REAL_PAGE,
   PATH_CHECK_URL,
-  PATH_SUPPORTED_PLATFORMS,
 } from "./constants";
 import type {
   CheckUrlResponse,
   RealPlatformAnalyzeRequest,
   RealPlatformAnalyzeResponse,
-  SupportedPlatformsResponse,
 } from "./platformTypes";
 import type {
   ExtensionAnalyzeRequest,
@@ -32,23 +29,6 @@ export class BackendError extends Error {
     super(message);
     this.name = "BackendError";
     this.status = status;
-  }
-}
-
-/**
- * Return true if `url` is one of the loopback pages Phase 6 supports.
- *
- * Compares scheme + host + port exactly, so a lookalike host such as
- * `http://127.0.0.1.example.com:8000` does not pass. The backend applies the
- * same check, so this is a UX nicety rather than the security boundary.
- */
-export function isAllowedPageUrl(url: string | undefined | null): boolean {
-  if (!url) return false;
-  try {
-    const parsed = new URL(url);
-    return (ALLOWED_PAGE_ORIGINS as readonly string[]).includes(parsed.origin);
-  } catch {
-    return false;
   }
 }
 
@@ -105,13 +85,6 @@ export function analyzeCurrentPage(
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
-
-/** Phase 7: which platforms the backend supports, and which domains are approved. */
-export function getSupportedPlatforms(
-  backendUrl: string = DEFAULT_BACKEND_URL,
-): Promise<SupportedPlatformsResponse> {
-  return request<SupportedPlatformsResponse>(backendUrl, PATH_SUPPORTED_PLATFORMS);
 }
 
 /**
