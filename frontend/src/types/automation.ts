@@ -19,6 +19,7 @@ export interface FieldMapping {
   evidence: MatchEvidence[];
   warnings: string[];
   field_fingerprint: string;
+  field_label: string;
 }
 
 export interface FillPlan {
@@ -77,6 +78,7 @@ export function normalizeFieldMapping(raw: Partial<FieldMapping> & Pick<FieldMap
     evidence: Array.isArray(raw.evidence) ? raw.evidence : [],
     warnings: Array.isArray(raw.warnings) ? raw.warnings : [],
     field_fingerprint: raw.field_fingerprint ?? "",
+    field_label: raw.field_label ?? "",
   };
 }
 

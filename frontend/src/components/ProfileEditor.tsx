@@ -165,19 +165,24 @@ export function ProfileEditor({ profile, onSave, busy }: ProfileEditorProps) {
 
   return (
     <section className="card">
-      <h2>2. Edit profile</h2>
-      <p className="muted">
-        Review and correct the parsed values. Saving stores the profile locally;
-        it does not change the review status.
-      </p>
+      <header className="card-header">
+        <span className="step">2</span>
+        <div>
+          <h2>Edit profile</h2>
+          <p className="muted">
+            Correct anything the parser got wrong. Saving stores the profile locally;
+            mark it reviewed in step 3 when you are done.
+          </p>
+        </div>
+      </header>
 
       <h3>Identity</h3>
       <div className="grid-2">
         <TextField label="Full name" value={fullName} onChange={setFullName} />
-        <TextField label="Email" value={email} onChange={setEmail} />
+        <TextField label="Email" type="email" value={email} onChange={setEmail} />
         <TextField label="First name" value={firstName} onChange={setFirstName} />
         <TextField label="Last name" value={lastName} onChange={setLastName} />
-        <TextField label="Phone" value={phone} onChange={setPhone} />
+        <TextField label="Phone" type="tel" value={phone} onChange={setPhone} />
         <TextField label="City" value={city} onChange={setCity} />
         <TextField label="State" value={stateRegion} onChange={setStateRegion} />
         <TextField label="Country" value={country} onChange={setCountry} />
@@ -185,9 +190,9 @@ export function ProfileEditor({ profile, onSave, busy }: ProfileEditorProps) {
 
       <h3>Links</h3>
       <div className="grid-2">
-        <TextField label="LinkedIn" value={linkedin} onChange={setLinkedin} />
-        <TextField label="GitHub" value={github} onChange={setGithub} />
-        <TextField label="Portfolio" value={portfolio} onChange={setPortfolio} />
+        <TextField label="LinkedIn" type="url" value={linkedin} onChange={setLinkedin} />
+        <TextField label="GitHub" type="url" value={github} onChange={setGithub} />
+        <TextField label="Portfolio" type="url" value={portfolio} onChange={setPortfolio} />
       </div>
 
       <h3>Skills (comma-separated)</h3>
@@ -200,10 +205,12 @@ export function ProfileEditor({ profile, onSave, busy }: ProfileEditorProps) {
         <TextField label="Other skills" value={otherSkills} onChange={setOtherSkills} />
       </div>
 
-      <h3>Work authorization</h3>
-      <p className="warning-strong">
-        Sensitive legal fields — confirm manually. "Unknown" is left blank and is
-        never auto-answered.
+      <h3>
+        Work authorization <span className="status-badge status-protected">Protected</span>
+      </h3>
+      <p className="notice notice-protected">
+        Kept for your reference only. These answers are never filled into an
+        application; you answer them yourself on each form.
       </p>
       <div className="grid-2">
         <SelectField
@@ -229,7 +236,7 @@ export function ProfileEditor({ profile, onSave, busy }: ProfileEditorProps) {
         <TextField label="Remote preference" value={remotePref} onChange={setRemotePref} />
         <TextField label="Start date" value={startDate} onChange={setStartDate} />
         <TextField
-          label="Salary expectation (review required)"
+          label="Salary expectation (never auto-filled)"
           value={salary}
           onChange={setSalary}
         />
@@ -243,7 +250,7 @@ export function ProfileEditor({ profile, onSave, busy }: ProfileEditorProps) {
       <JsonField label="Experience" value={experienceJson} onChange={setExperienceJson} />
       <JsonField label="Projects" value={projectsJson} onChange={setProjectsJson} />
 
-      {jsonError && <p className="error">{jsonError}</p>}
+      {jsonError && <p className="notice notice-error">{jsonError}</p>}
 
       <div className="row">
         <button type="button" onClick={handleSave} disabled={busy}>
@@ -275,15 +282,17 @@ function TextField({
   label,
   value,
   onChange,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  type?: "text" | "email" | "tel" | "url";
 }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
 }

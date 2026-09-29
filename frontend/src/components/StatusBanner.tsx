@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { API_BASE_URL, getHealth } from "../api/client";
 
-type ConnectionState = "checking" | "online" | "offline";
+export type ConnectionState = "checking" | "online" | "offline";
 
-// Checks GET /health on mount and shows whether the backend is reachable.
-export function StatusBanner() {
+// Checks GET /health on mount; `recheck` runs it again.
+export function useBackendHealth(): [ConnectionState, () => void] {
   const [state, setState] = useState<ConnectionState>("checking");
 
-  async function check() {
+  const recheck = useCallback(async () => {
     setState("checking");
     try {
       const health = await getHealth();
@@ -15,26 +15,26 @@ export function StatusBanner() {
     } catch {
       setState("offline");
     }
-  }
-
-  useEffect(() => {
-    void check();
   }, []);
 
+  useEffect(() => {
+    void recheck();
+  }, [recheck]);
+
+  return [state, () => void recheck()];
+}
+
+// Only shown when the backend is unreachable, with the command that fixes it.
+export function OfflineBanner({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className={`status-banner status-${state}`}>
-      {state === "checking" && <span>Checking backend connection…</span>}
-      {state === "online" && (
-        <span>Backend connected at {API_BASE_URL}</span>
-      )}
-      {state === "offline" && (
-        <span>
-          Backend is not reachable. Start it with:{" "}
-          <code>uvicorn app.main:app --reload</code> (from the <code>backend</code>{" "}
-          folder).
-        </span>
-      )}
-      <button type="button" className="link-button" onClick={() => void check()}>
+    <div className="notice notice-error banner" role="alert">
+      <div>
+        <strong>The local backend is not running.</strong> Nothing can be parsed,
+        saved, or analyzed until it is. From the <code>backend</code> folder, run{" "}
+        <code>uvicorn app.main:app --reload</code> (expected at{" "}
+        <code>{API_BASE_URL}</code>).
+      </div>
+      <button type="button" className="secondary" onClick={onRetry}>
         Retry
       </button>
     </div>

@@ -8,13 +8,15 @@ import type { AutofillResult, FillPlan } from "../types/automation";
 import { FieldMappingReview } from "./FieldMappingReview";
 import { MappingOverrideEditor } from "./MappingOverrideEditor";
 
-// Phase 5 automation panel. Works against local sample forms only.
+// Runs the mapping engine against the local sample forms shipped with the repo.
+// Real application pages are handled by the Chrome extension, not here.
 export function AutomationPrototype() {
   const [forms, setForms] = useState<string[]>([]);
+  const [formsLoaded, setFormsLoaded] = useState(false);
   const [selectedForm, setSelectedForm] = useState<string>("");
   const [plan, setPlan] = useState<FillPlan | null>(null);
   const [dryRunResult, setDryRunResult] = useState<AutofillResult | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"analyze" | "dry-run" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,28 +31,30 @@ export function AutomationPrototype() {
         setSelectedForm((current) => current || names[0]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load sample forms.");
+      setError(err instanceof Error ? err.message : "Could not load the sample forms.");
+    } finally {
+      setFormsLoaded(true);
     }
   }
 
   async function handleAnalyze() {
     if (!selectedForm) return;
-    setBusy(true);
+    setBusy("analyze");
     setError(null);
     setDryRunResult(null);
     try {
       setPlan(await analyzeSampleForm(selectedForm));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analyze failed.");
+      setError(err instanceof Error ? err.message : "Analysis failed.");
       setPlan(null);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
   async function handleDryRun() {
     if (!selectedForm) return;
-    setBusy(true);
+    setBusy("dry-run");
     setError(null);
     try {
       setDryRunResult(await dryRunSampleForm(selectedForm));
@@ -58,62 +62,101 @@ export function AutomationPrototype() {
       setError(err instanceof Error ? err.message : "Dry run failed.");
       setDryRunResult(null);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
-  const sensitiveCount =
-    plan?.mappings?.filter((m) => m.sensitive).length ?? 0;
-
   return (
     <section className="card">
-      <h2>Field-mapping review (Phase 5)</h2>
-      <p className="muted">
-        This prototype only analyzes <strong>local sample forms</strong> shipped
-        with the app. It does not support real job sites, never submits, and
-        always leaves sensitive/legal fields for manual review.
-      </p>
+      <header className="card-header">
+        <span className="step">4</span>
+        <div>
+          <h2>Test on a sample form</h2>
+          <p className="muted">
+            See what the assistant would do on a local practice form before you use
+            the Chrome extension on a real application.
+          </p>
+        </div>
+      </header>
 
-      <div className="field-row">
-        <label htmlFor="sample-form">Sample form</label>
-        <select
-          id="sample-form"
-          value={selectedForm}
-          onChange={(e) => setSelectedForm(e.target.value)}
-          disabled={busy || forms.length === 0}
+      {formsLoaded && forms.length === 0 && !error && (
+        <p className="empty-state">No sample forms found in the sample-forms folder.</p>
+      )}
+
+      <div className="toolbar">
+        <label className="field field-inline">
+          <span>Sample form</span>
+          <select
+            value={selectedForm}
+            onChange={(e) => setSelectedForm(e.target.value)}
+            disabled={busy !== null || forms.length === 0}
+          >
+            {forms.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => void handleAnalyze()}
+          disabled={busy !== null || !selectedForm}
         >
-          {forms.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="button-row">
-        <button type="button" onClick={() => void handleAnalyze()} disabled={busy || !selectedForm}>
-          Analyze form
+          {busy === "analyze" ? "Analyzing…" : "Analyze form"}
         </button>
         <button
           type="button"
           className="secondary"
           onClick={() => void handleDryRun()}
-          disabled={busy || !selectedForm}
+          disabled={busy !== null || !selectedForm}
+          title="Opens the form in a headless browser without typing anything"
         >
-          Run dry run
+          {busy === "dry-run" ? "Running…" : "Dry run"}
         </button>
       </div>
 
-      {error && <div className="toast toast-error">{error}</div>}
+      {error && <p className="notice notice-error">{error}</p>}
+
+      {!plan && !dryRunResult && !error && forms.length > 0 && (
+        <p className="empty-state">
+          Pick a form and click <strong>Analyze form</strong> to see every field, the
+          decision for it, and why.
+        </p>
+      )}
+
+      {dryRunResult && (
+        <div className="result-block">
+          <h3>Dry run result</h3>
+          <p className="muted">Nothing was typed into the form and nothing was submitted.</p>
+          <dl className="stat-row">
+            <div className="stat stat-fill">
+              <dt>Would fill</dt>
+              <dd className="num">{dryRunResult.filled_fields.length}</dd>
+            </div>
+            <div className="stat stat-suggest">
+              <dt>Suggested</dt>
+              <dd className="num">{dryRunResult.suggested_fields.length}</dd>
+            </div>
+            <div className="stat stat-manual_review">
+              <dt>Needs review</dt>
+              <dd className="num">{dryRunResult.manual_review_fields.length}</dd>
+            </div>
+            <div className="stat stat-skip">
+              <dt>Skipped</dt>
+              <dd className="num">{dryRunResult.skipped_fields.length}</dd>
+            </div>
+          </dl>
+          {dryRunResult.report_path && (
+            <p className="muted">
+              Redacted report saved to <code>{dryRunResult.report_path}</code>
+            </p>
+          )}
+        </div>
+      )}
 
       {plan && (
-        <div className="automation-results">
-          {sensitiveCount > 0 && (
-            <div className="toast toast-error">
-              {sensitiveCount} sensitive/legal field(s) detected - all left for
-              manual review and never autofilled.
-            </div>
-          )}
+        <div className="result-block">
           <FieldMappingReview plan={plan} />
           <MappingOverrideEditor
             plan={plan}
@@ -122,34 +165,6 @@ export function AutomationPrototype() {
           />
         </div>
       )}
-
-      {dryRunResult && (
-        <div className="automation-results">
-          <h3>Dry run result</h3>
-          <p className="muted">Nothing was typed into the form (dry run).</p>
-          <div className="counts">
-            <span className="pill pill-fill">
-              Would fill: {dryRunResult.filled_fields.length}
-            </span>
-            <span className="pill pill-suggest">
-              Suggested: {dryRunResult.suggested_fields.length}
-            </span>
-            <span className="pill pill-manual">
-              Manual review: {dryRunResult.manual_review_fields.length}
-            </span>
-            <span className="pill pill-skip">
-              Skipped: {dryRunResult.skipped_fields.length}
-            </span>
-          </div>
-          {dryRunResult.report_path && (
-            <p className="muted">Redacted report: {dryRunResult.report_path}</p>
-          )}
-        </div>
-      )}
-
-      <p className="muted automation-warning">
-        Reminder: real job sites are intentionally not supported in this phase.
-      </p>
     </section>
   );
 }

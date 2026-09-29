@@ -86,6 +86,8 @@ class FieldMapping(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     # Stable fingerprint of non-private field metadata, used to attach overrides.
     field_fingerprint: str = ""
+    # The field's visible label (or name/id), for display in review UIs.
+    field_label: str = ""
 
 
 class FillPlan(BaseModel):

@@ -12,11 +12,18 @@ const OVERRIDE_ACTIONS: FieldAction[] = [
   "fill",
 ];
 
+const ACTION_NAMES: Record<FieldAction, string> = {
+  fill: "Fill",
+  suggest: "Suggest",
+  manual_review: "Needs review",
+  skip: "Skip",
+};
+
 function fieldLabel(mapping: FieldMapping): string {
-  return mapping.profile_path ?? mapping.category ?? mapping.selector;
+  return mapping.field_label || mapping.profile_path || mapping.selector;
 }
 
-// Phase 5: a simple editor to save a local mapping override for one field.
+// Saves a local mapping override for one field of a sample form.
 export function MappingOverrideEditor({
   plan,
   formName,
@@ -60,7 +67,7 @@ export function MappingOverrideEditor({
       const warned = saveWarnings.length
         ? ` (${saveWarnings.join("; ")})`
         : "";
-      setMessage(`Saved override as "${result.override.action}".${warned}`);
+      setMessage(`Saved: ${ACTION_NAMES[result.override.action]}.${warned}`);
       onSaved?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save override.");
@@ -70,80 +77,65 @@ export function MappingOverrideEditor({
   }
 
   return (
-    <div className="override-editor">
-      <h4>Add a local mapping override</h4>
+    <details className="override-editor">
+      <summary>Correct a decision for this form</summary>
       <p className="muted">
-        Overrides are <strong>local-only</strong> and reused on future runs.
-        Sensitive / legal fields can never be forced to autofill - those are
-        always saved as manual review.
+        Overrides are saved locally and reused the next time this form is analyzed.
+        Sensitive or legal fields can never be forced to fill; they are saved as
+        needs review instead.
       </p>
 
-      <div className="field-row">
-        <label htmlFor="override-field">Detected field</label>
-        <select
-          id="override-field"
-          value={fieldId}
-          onChange={(e) => setFieldId(e.target.value)}
-          disabled={busy}
-        >
-          <option value="">Select a field...</option>
-          {plan.mappings.map((m) => (
-            <option key={m.field_id} value={m.field_id}>
-              {fieldLabel(m)} [{m.category}]
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className="grid-2">
+        <label className="field">
+          <span>Detected field</span>
+          <select value={fieldId} onChange={(e) => setFieldId(e.target.value)} disabled={busy}>
+            <option value="">Select a field…</option>
+            {plan.mappings.map((m) => (
+              <option key={m.field_id} value={m.field_id}>
+                {fieldLabel(m)} [{m.category}]
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <div className="field-row">
-        <label htmlFor="override-category">Category / profile path</label>
-        <select
-          id="override-category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          disabled={busy}
-        >
-          {SAFE_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
+        <label className="field">
+          <span>Map it to</span>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} disabled={busy}>
+            {SAFE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <div className="field-row">
-        <label htmlFor="override-action">Action</label>
-        <select
-          id="override-action"
-          value={action}
-          onChange={(e) => setAction(e.target.value as FieldAction)}
-          disabled={busy}
-        >
-          {OVERRIDE_ACTIONS.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
-      </div>
+        <label className="field">
+          <span>Decision</span>
+          <select
+            value={action}
+            onChange={(e) => setAction(e.target.value as FieldAction)}
+            disabled={busy}
+          >
+            {OVERRIDE_ACTIONS.map((a) => (
+              <option key={a} value={a}>
+                {ACTION_NAMES[a]}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <div className="field-row">
-        <label htmlFor="override-note">Note (optional)</label>
-        <input
-          id="override-note"
-          type="text"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          disabled={busy}
-        />
+        <label className="field">
+          <span>Note (optional)</span>
+          <input type="text" value={note} onChange={(e) => setNote(e.target.value)} disabled={busy} />
+        </label>
       </div>
 
       <button type="button" onClick={() => void handleSave()} disabled={busy || !fieldId}>
-        Save override
+        {busy ? "Saving…" : "Save override"}
       </button>
 
-      {message && <div className="toast">{message}</div>}
-      {error && <div className="toast toast-error">{error}</div>}
-    </div>
+      {message && <p className="notice notice-success">{message}</p>}
+      {error && <p className="notice notice-error">{error}</p>}
+    </details>
   );
 }

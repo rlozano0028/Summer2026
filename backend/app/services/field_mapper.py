@@ -399,7 +399,6 @@ def map_field_to_profile(
             sensitive=True,
             confidence=classification.confidence,
             evidence=classification.evidence,
-            warnings=[f"Sensitive field left for manual review: {_label_for(context)}"],
         )
 
     # 6. File uploads: need an explicit local file (handled by the runner).
@@ -523,8 +522,10 @@ def build_fill_plan(
         fingerprint = field_mapping_overrides.fingerprint_for_context(context)
         override = overrides_by_fp.get(fingerprint) if overrides_by_fp else None
         mapping = map_field_to_profile(field, profile, override=override)
-        # Expose the fingerprint so the UI can save an override for this field.
+        # Expose the fingerprint so the UI can save an override for this field,
+        # and the visible label so the review shows the question, not a selector.
         mapping.field_fingerprint = fingerprint
+        mapping.field_label = _label_for(context)
         mappings.append(mapping)
 
     counts: dict[str, int] = {

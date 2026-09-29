@@ -1,21 +1,46 @@
+/*
+ * Design tokens. The five decision colors (fill, suggest, review, skip, protected)
+ * are shared with the extension popup (extension/src/popup/popup.css) so a status
+ * looks the same everywhere. Red is reserved for real errors: a protected field is
+ * a safe outcome, so it gets its own calm color instead.
+ */
 :root {
-  --bg: #f5f6f8;
-  --card-bg: #ffffff;
-  --text: #1f2430;
-  --muted: #6b7280;
-  --border: #d9dde3;
-  --accent: #2563eb;
-  --accent-text: #ffffff;
-  --error-bg: #fdecec;
-  --error-text: #b42318;
-  --review-bg: #fff4e5;
-  --review-text: #b54708;
-  --ok-bg: #e7f6ec;
-  --ok-text: #1a7f37;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-muted: #f1f3f6;
+  --text: #1c2330;
+  --text-muted: #5b6474;
+  --border: #dde1e7;
+  --border-strong: #c6ccd5;
 
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
-  font-size: 16px;
+  --accent: #2f5d8a;
+  --accent-hover: #264d73;
+  --accent-soft: #e8eff6;
+  --focus: #2f5d8a;
+
+  --fill: #1f7045;
+  --fill-bg: #e7f3ec;
+  --suggest: #1e6474;
+  --suggest-bg: #e5f1f3;
+  --review: #8a5300;
+  --review-bg: #fcf1dc;
+  --skip: #5b6474;
+  --skip-bg: #eef0f3;
+  --protected: #5e3f93;
+  --protected-bg: #efeaf7;
+  --danger: #b3261e;
+  --danger-bg: #fcebea;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(28, 35, 48, 0.06), 0 1px 3px rgba(28, 35, 48, 0.04);
+
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+    Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -25,4 +50,15 @@
 body {
   margin: 0;
   background: var(--bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+code,
+pre {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.87em;
 }

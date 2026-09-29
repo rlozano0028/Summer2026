@@ -10,7 +10,7 @@ import { ProfileEditor } from "./components/ProfileEditor";
 import { ProfileSummary } from "./components/ProfileSummary";
 import { ResumeUpload } from "./components/ResumeUpload";
 import { ReviewPanel } from "./components/ReviewPanel";
-import { StatusBanner } from "./components/StatusBanner";
+import { OfflineBanner, useBackendHealth } from "./components/StatusBanner";
 import {
   emptyProfile,
   type CandidateProfile,
@@ -27,6 +27,8 @@ function App() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmingNew, setConfirmingNew] = useState(false);
+  const [backend, recheckBackend] = useBackendHealth();
 
   // Try to load any previously saved profile on first render.
   useEffect(() => {
@@ -43,7 +45,7 @@ function App() {
     try {
       const existing = await getProfile();
       applyProfile(existing);
-      setMessage("Loaded saved profile.");
+      setMessage(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         // No saved profile yet - that's fine.
@@ -58,25 +60,21 @@ function App() {
     applyProfile(result.profile);
     setWarnings(result.warnings);
     setMissingFields(result.missing_fields);
-    setMessage("Resume parsed and saved. Please review the fields below.");
+    setMessage("Resume parsed and saved. Review every field below before using it.");
     setError(null);
   }
 
   function handleNewProfile() {
-    if (
-      profile &&
-      !window.confirm(
-        "Start a new blank profile in the editor? Your saved profile on disk is unchanged until you click Save profile.",
-      )
-    ) {
+    // Replacing a loaded profile in the editor needs a second click.
+    if (profile && !confirmingNew) {
+      setConfirmingNew(true);
       return;
     }
+    setConfirmingNew(false);
     applyProfile(emptyProfile());
     setWarnings([]);
     setMissingFields([]);
-    setMessage(
-      "New blank profile — fill in the fields below, then click Save profile.",
-    );
+    setMessage("New blank profile. Fill in the fields, then click Save profile.");
     setError(null);
   }
 
@@ -101,7 +99,7 @@ function App() {
       const saved = await updateReviewStatus(needsReview, note);
       setProfile(saved);
       setMessage(
-        needsReview ? "Marked as needs review." : "Marked as reviewed.",
+        needsReview ? "Profile marked as needs review." : "Profile marked as reviewed.",
       );
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
@@ -114,32 +112,84 @@ function App() {
     }
   }
 
+  const profileState = !profile
+    ? { label: "No profile", tone: "skip" }
+    : profile.metadata.needs_review
+      ? { label: "Needs review", tone: "manual_review" }
+      : { label: "Reviewed", tone: "fill" };
+  const backendState = {
+    checking: { label: "Checking…", tone: "skip" },
+    online: { label: "Connected", tone: "fill" },
+    offline: { label: "Offline", tone: "danger" },
+  }[backend];
+
   return (
     <div className="app">
       <header className="app-header">
-        <div className="header-row">
-          <div>
-            <h1>Resume Autofill Assistant — Local Dashboard</h1>
-            <p className="muted">
-              Upload a resume, start from scratch, review, and save locally. Nothing
-              leaves your machine.
-            </p>
+        <div className="brand">
+          <h1>Autofill Assistant</h1>
+          <p className="muted">Local dashboard for your application profile</p>
+        </div>
+        <dl className="status-chips">
+          <div className="status-chip">
+            <dt>Backend</dt>
+            <dd>
+              <span className={`status-dot status-${backendState.tone}`} aria-hidden="true" />
+              {backendState.label}
+            </dd>
           </div>
-          <button
-            type="button"
-            className="secondary"
-            onClick={handleNewProfile}
-            disabled={busy}
-          >
-            New profile
-          </button>
+          <div className="status-chip">
+            <dt>Profile</dt>
+            <dd>
+              <span className={`status-dot status-${profileState.tone}`} aria-hidden="true" />
+              {profileState.label}
+            </dd>
+          </div>
+        </dl>
+        <div className="header-actions">
+          {confirmingNew ? (
+            <>
+              <span className="muted">Discard unsaved edits?</span>
+              <button type="button" className="danger" onClick={handleNewProfile}>
+                Start blank
+              </button>
+              <button type="button" className="secondary" onClick={() => setConfirmingNew(false)}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button type="button" className="secondary" onClick={handleNewProfile} disabled={busy}>
+              New profile
+            </button>
+          )}
         </div>
       </header>
 
-      <StatusBanner />
+      <ul className="safety-strip" aria-label="Safety rules">
+        <li>
+          <strong>You submit.</strong> Nothing is ever submitted for you.
+        </li>
+        <li>
+          <strong>Sensitive questions are protected.</strong> Work authorization,
+          sponsorship, salary, EEO, and legal questions are never filled.
+        </li>
+        <li>
+          <strong>Local only.</strong> Your profile stays on this computer.
+        </li>
+      </ul>
 
-      {message && <div className="toast toast-info">{message}</div>}
-      {error && <div className="toast toast-error">{error}</div>}
+      {backend === "offline" && <OfflineBanner onRetry={recheckBackend} />}
+
+      {message && (
+        <p className="notice notice-success" role="status">
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="notice notice-error" role="alert">
+          {error}
+        </p>
+      )}
 
       <main className="layout">
         <div className="column">
@@ -153,10 +203,13 @@ function App() {
             />
           ) : (
             <section className="card">
-              <h2>2. Edit profile</h2>
-              <p className="muted">
-                No profile loaded yet. Click <strong>New profile</strong> above to
-                write one from scratch, or upload a resume.
+              <header className="card-header">
+                <span className="step">2</span>
+                <h2>Edit profile</h2>
+              </header>
+              <p className="empty-state">
+                No profile yet. Upload a resume above, or click{" "}
+                <strong>New profile</strong> to write one from scratch.
               </p>
             </section>
           )}
@@ -173,13 +226,16 @@ function App() {
               busy={busy}
             />
           )}
+        </div>
+
+        <div className="span-all">
           <AutomationPrototype />
         </div>
       </main>
 
       <footer className="app-footer muted">
-        Local-first · resume files are never stored · only the reviewed profile JSON
-        is saved
+        Resume files are parsed in memory and never stored. Only the profile you
+        review is saved, to <code>backend/app/data/profile.json</code>.
       </footer>
     </div>
   );

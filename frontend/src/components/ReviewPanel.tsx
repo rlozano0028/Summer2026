@@ -33,22 +33,24 @@ export function ReviewPanel({
 
   return (
     <section className="card">
-      <h2>Review</h2>
-
-      <div className="review-status">
-        Status:{" "}
-        {metadata.needs_review ? (
-          <span className="badge badge-review">Needs review</span>
-        ) : (
-          <span className="badge badge-ok">Reviewed</span>
-        )}
-      </div>
-
-      <p className="warning-strong">
-        Always manually verify sensitive/legal fields (work authorization,
-        sponsorship, salary, demographic, veteran, disability, and criminal-history
-        questions). These are never auto-answered.
-      </p>
+      <header className="card-header">
+        <span className="step">3</span>
+        <div>
+          <h2>
+            Review{" "}
+            {metadata.needs_review ? (
+              <span className="status-badge status-manual_review">Needs review</span>
+            ) : (
+              <span className="status-badge status-fill">Reviewed</span>
+            )}
+          </h2>
+          <p className="muted">
+            {metadata.needs_review
+              ? "Check the profile against your resume, then mark it reviewed."
+              : "This profile has been checked and is ready to use."}
+          </p>
+        </div>
+      </header>
 
       {warnings.length > 0 && (
         <div>
@@ -83,7 +85,7 @@ export function ReviewPanel({
             ))}
           </ul>
         ) : (
-          <p className="muted">No review notes yet.</p>
+          <p className="muted">No notes yet.</p>
         )}
       </div>
 
@@ -110,9 +112,7 @@ export function ReviewPanel({
           Mark needs review
         </button>
       </div>
-      <p className="muted">
-        Changing review status saves immediately to the local profile.
-      </p>
+      <p className="muted">Changing the status saves immediately.</p>
     </section>
   );
 }

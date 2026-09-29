@@ -38,14 +38,20 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
 
   return (
     <section className="card">
-      <h2>1. Upload resume</h2>
-      <p className="muted">
-        Accepted: PDF, DOCX, TXT. The file is parsed and the resulting profile is
-        saved locally. The uploaded file itself is not stored.
-      </p>
+      <header className="card-header">
+        <span className="step">1</span>
+        <div>
+          <h2>Upload resume</h2>
+          <p className="muted">
+            PDF, DOCX, or TXT. The file is parsed on this computer and not kept; only
+            the resulting profile is saved.
+          </p>
+        </div>
+      </header>
 
       <div className="row">
         <input
+          aria-label="Resume file"
           type="file"
           accept={ACCEPTED}
           onChange={(e) => {
@@ -53,18 +59,17 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
             setError(null);
           }}
         />
-        <button type="button" onClick={() => void handleUpload()} disabled={loading}>
+        <button type="button" onClick={() => void handleUpload()} disabled={loading || !file}>
           {loading ? "Parsing…" : "Parse & save"}
         </button>
       </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && <p className="notice notice-error">{error}</p>}
 
       {result && (
         <div className="parse-result">
-          <p className="warning-strong">
-            Parsed data is a rough draft and requires your review before it can be
-            trusted.
+          <p className="notice notice-warn">
+            This is a first draft. Check every field in step 2 before you use it.
           </p>
           <p className="muted">
             Detected from <strong>{result.source_file_name}</strong> · confidence{" "}
@@ -84,7 +89,7 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
 
           {result.missing_fields.length > 0 && (
             <div>
-              <h4>Missing / not auto-filled</h4>
+              <h4>Not found in the resume</h4>
               <ul className="chips">
                 {result.missing_fields.map((m, i) => (
                   <li key={i} className="chip">
